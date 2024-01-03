@@ -60,7 +60,7 @@ To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 without any qu
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries ""
 ```
 
-To query papers whose title includes either `emotion recognition` or `facial expression` or `multimodal`. The scraped data will be saved in `data.csv`, which is defined in `settings.py`.
+To query papers whose title includes either `emotion recognition` or `facial expression` or `multimodal`. 
 ```
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "(emotion recognition) or (facial expression) or multimodal"
 ```
