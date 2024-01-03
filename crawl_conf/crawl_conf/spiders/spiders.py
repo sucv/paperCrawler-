@@ -179,11 +179,25 @@ class NipsScrapySpider(BaseSpider):
 
         for conf in self.wanted_conf:
             conf_url = "/paper/" + conf[4:]
+            year = conf[4:]
             url = response.urljoin(conf_url)
             meta = {"conf": conf}
 
-            yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
+            if year == "2023":
+                url = response.urljoin("https://nips.cc" + "/Conferences/" + conf[4:] + "/Schedule")
+                yield scrapy.Request(url, callback=self.parse_paper_list_for_openreview, meta=meta)
+            else:
+                yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
 
+    def parse_paper_list_for_openreview(self, response):
+        meta = {"conf": response.meta['conf']}
+        paper_id_list = response.xpath(
+            "//div[@id='base-main-content']/div[2]/div[3 < position()]/div[@class='maincard narrower poster']/@id").extract()
+
+        for paper_id in paper_id_list:
+            url = response.url + "?showEvent=" + paper_id.split("_")[1]
+
+            yield scrapy.Request(url, callback=self.parse_paper, meta=meta)
     def parse_paper_list(self, response):
         meta = {"conf": response.meta['conf']}
         paper_url_list = response.xpath("//div[@class='container-fluid']/div[@class='col']/ul/li/a/@href").extract()
@@ -195,17 +209,37 @@ class NipsScrapySpider(BaseSpider):
     @staticmethod
     def extract_data(response):
 
-        title = inspect.cleandoc(response.xpath("//div[@class='col']/h4/text()").get())
-        clean_title = re.sub(r'\W+', ' ', title).lower()
-        authors = inspect.cleandoc(response.xpath("//div[@class='col']/p[position()=2]/i/text()").get())
-
-        try:
-            abstract = inspect.cleandoc(response.xpath("//div[@class='col']/p[position()=4]/text()").get())
-        except:
+        if response.meta['conf'] == "NIPS2023":
+            title = inspect.cleandoc(
+                response.xpath("//div[@id='base-main-content']/div[2]/div[@id=$pid]/div[@class='maincardBody']/text()",
+                               pid="maincard_" + response.url.split("=")[1]).get())
+            clean_title = re.sub(r'\W+', ' ', title).lower()
+            authors = inspect.cleandoc(
+                ",".join(response.xpath("//div[@id='base-main-content']/div[2]/button/text()").extract())).replace("»",
+                                                                                                                   "")
             abstract = inspect.cleandoc(response.xpath(
-                "//div[@class='col']/p[position()=3]/text() | //div[@class='col']/p[position()=3]/span/text()").get())
+                "//div[@class='abstractContainer']/p/text() | //div[@class='abstractContainer']/text() | //div[@class='abstractContainer']/span/text()").get())
 
-        pdf_url = response.urljoin(response.xpath("//div[@class='col']/div/a[text()='Paper']/@href").get())
+            # ICML currently does not provide pdf link in this source. So the code below won't get anything.
+            paper_id = response.xpath("//div[@class='maincard narrower poster']/@id").get()
+
+            pdf_openreview_url = response.xpath(
+                "//div[@id=$pid]//a[contains(string(), 'OpenReview') or contains(string(), 'Paper')]/@href",
+                pid=paper_id).get()
+            pdf_url = pdf_openreview_url.replace("forum", "pdf")
+
+        else:
+            title = inspect.cleandoc(response.xpath("//div[@class='col']/h4/text()").get())
+            clean_title = re.sub(r'\W+', ' ', title).lower()
+            authors = inspect.cleandoc(response.xpath("//div[@class='col']/p[position()=2]/i/text()").get())
+
+            try:
+                abstract = inspect.cleandoc(response.xpath("//div[@class='col']/p[position()=4]/text()").get())
+            except:
+                abstract = inspect.cleandoc(response.xpath(
+                    "//div[@class='col']/p[position()=3]/text() | //div[@class='col']/p[position()=3]/span/text()").get())
+
+            pdf_url = response.urljoin(response.xpath("//div[@class='col']/div/a[text()='Paper']/@href").get())
 
         return title, pdf_url, clean_title, authors, abstract
 
