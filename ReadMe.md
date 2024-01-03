@@ -23,6 +23,8 @@ Conference, matched keywords, title, citation count, code url, pdf url, authors,
 
 ### Change Log
 
++ 03-JAN-2024
+  + Added the `-out` argument to specify the output path and filename.
 + 02-JAN-2024
   + Fixed urls that were not working due to target website updates.
   + Added support for ICLR, ICML, KDD, and WWW.
@@ -53,11 +55,11 @@ pip install scrapy semanticscholar fuzzywuzzy pyparsing git+https://github.com/s
 
 ### Usage
 
-Firstly, cd to the path where `main.py` is located. During the scrawling, a `data.csv` will be generated on-the-go in the same directory.
+Firstly, cd to the path where `main.py` is located. During the scrawling, a `data.csv` will be generated on-the-go in the same directory by default unless `-out` is specified.
 
-To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 without any querying.
+To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 without any querying, and save all the output to `all.csv`.
 ```
-python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries ""
+python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "" -out "all.csv"
 ```
 
 To query papers whose title includes either `emotion recognition` or `facial expression` or `multimodal`. 
@@ -79,8 +81,9 @@ More example for queries can be found [here](https://github.com/pyparsing/pypars
 
 Supported arguments:
 + `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www. Must be in lowercase, use comma to separate.
-+ `years`: Four-digit numbers, use comma to separate.
++ `years`: four-digit numbers, use comma to separate.
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
++ `out`: if specified, will save the output to the path.
 + `count_citations`: if specified, will count the citations using [SemanticScholar API](https://www.semanticscholar.org/product/api). The time interval for crawling each paper will be set to 10 seconds to prevent from exceeding the maximum request limit per second .
 + `query_from_abstract`: if specified, will query from the abstract instead of title.
 

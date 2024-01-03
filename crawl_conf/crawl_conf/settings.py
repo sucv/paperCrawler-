@@ -16,7 +16,7 @@ LOG_LEVEL = "DEBUG"
 
 FEED_EXPORT_FIELDS = ['conf', 'matched_queries', 'title','clean_title', 'citation_count', 'code_url', 'pdf_url', 'authors', 'abstract']
 
-FEEDS = {r"data.csv" : {"format" : "csv", "overwrite":False}}
+# FEEDS = {r"data.csv" : {"format" : "csv", "overwrite":False}}
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'crawl_conf (+http://www.yourdomain.com)'
