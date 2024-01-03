@@ -79,7 +79,7 @@ More example for queries can be found [here](https://github.com/pyparsing/pypars
 
 Supported arguments:
 + `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www. Must be in lowercase, use comma to separate.
-+ `year`: Four-digit numbers, use comma to separate.
++ `years`: Four-digit numbers, use comma to separate.
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
 + `count_citations`: if specified, will count the citations using [SemanticScholar API](https://www.semanticscholar.org/product/api). The time interval for crawling each paper will be set to 10 seconds to prevent from exceeding the maximum request limit per second .
 + `query_from_abstract`: if specified, will query from the abstract instead of title.
