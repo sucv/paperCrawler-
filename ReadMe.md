@@ -55,10 +55,14 @@ pip install scrapy semanticscholar fuzzywuzzy pyparsing git+https://github.com/s
 
 Firstly, cd to the path where `main.py` is located. During the scrawling, a `data.csv` will be generated on-the-go in the same directory.
 
-To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 whose title includes either `emotion recognition` or `facial expression` or `multimodal`. The scraped data will be saved in `data.csv`, which is defined in `settings.py`.
+To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 without any querying.
+```
+python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries ""
+```
+
+To query papers whose title includes either `emotion recognition` or `facial expression` or `multimodal`. The scraped data will be saved in `data.csv`, which is defined in `settings.py`.
 ```
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "(emotion recognition) or (facial expression) or multimodal"
-
 ```
 
 To query within paper abstracts instead of paper titles.
