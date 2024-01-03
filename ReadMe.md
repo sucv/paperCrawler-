@@ -25,6 +25,7 @@ Conference, matched keywords, title, citation count, code url, pdf url, authors,
 
 + 03-JAN-2024
   + Added the `-out` argument to specify the output path and filename.
+  + Fixed urls for NIPS2023.
 + 02-JAN-2024
   + Fixed urls that were not working due to target website updates.
   + Added support for ICLR, ICML, KDD, and WWW.
