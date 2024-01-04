@@ -41,7 +41,7 @@ Conference, matched keywords, title, citation count, code url, pdf url, authors,
 
 + 04-JAN-2024
   + Added support for ACL, EMNLP, and NAACL.
-  + Added support for top journals, including TPAMI, NMI, IJCV, TIP, and TAAFC via dblp and sematic scholar AIP.
+  + Added support for top journals, including TPAMI, NMI (Nature Machine Intelligence), IJCV, TIP, and TAAFC via dblp and sematic scholar AIP.
     + You may add your own spider in `spiders.py` by inheriting class `TpamiScrapySpider` like I did for the journals. 
 + 03-JAN-2024
   + Added the `-out` argument to specify the output path and filename.
@@ -106,7 +106,7 @@ Supported arguments:
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
 + `out`: if specified, will save the output to the path.
 + `count_citations`: if specified, will count the citations using [SemanticScholar API](https://www.semanticscholar.org/product/api). The time interval for crawling each paper will be set to 10 seconds to prevent from exceeding the maximum request limit per second .
-+ `query_from_abstract`: if specified, will query from the abstract instead of title.
++ `query_from_abstract`: if specified, will query from the abstract instead of title. Ignored for journals.
 
 
 
