@@ -22,7 +22,9 @@ This is a [Scrapy](https://docs.scrapy.org/en/latest/intro/tutorial.html)-based 
 |        | | | | | | | | |
 | TPAMI  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
 | NMI    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| PNAS   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
 | IJCV   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| IF     | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
 | TIP    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
 | TAFFC  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
 
@@ -41,7 +43,7 @@ Conference, matched keywords, title, citation count, code url, pdf url, authors,
 
 + 04-JAN-2024
   + Added support for ACL, EMNLP, and NAACL.
-  + Added support for top journals, including TPAMI, NMI (Nature Machine Intelligence), IJCV, TIP, and TAAFC via dblp and sematic scholar AIP.
+  + Added support for top journals, including TPAMI, NMI (Nature Machine Intelligence), PNAS, IJCV, IF, TIP, and TAAFC via dblp and sematic scholar AIP.
     + You may easily add your own spider in `spiders.py` by inheriting class `TpamiScrapySpider` [like I did](https://github.com/sucv/paperCrawler/blob/b83062636a338ce612bacb4d50b22446ff44e6ca/crawl_conf/crawl_conf/spiders/spiders.py#L774C10-L774C10) for the journals. 
 + 03-JAN-2024
   + Added the `-out` argument to specify the output path and filename.
@@ -101,7 +103,7 @@ python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "emotion and
 More example for queries can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18)
 
 Supported arguments:
-+ `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, ijcv, tip, taffc. Must be in lowercase, use comma to separate. `download_delay = 10` is used for journals, so better separate the conference and journal crawling as two processes. 
++ `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, pnas, ijcv, if, tip, taffc. Must be in lowercase, use comma to separate. `download_delay = 10` is used for journals, so better separate the conference and journal crawling as two processes. 
 + `years`: four-digit numbers, use comma to separate.
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
 + `out`: if specified, will save the output to the path.

@@ -836,4 +836,17 @@ class TipScrapySpider(TpamiScrapySpider):
         'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
     }
 
+class IfScrapySpider(TpamiScrapySpider):
+    name = "if"
+
+    start_urls = [
+        "https://dblp.org/db/journals/inffus/index.html",
+    ]
+
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
 
