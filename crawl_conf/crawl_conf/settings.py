@@ -14,7 +14,7 @@ NEWSPIDER_MODULE = 'crawl_conf.spiders'
 
 LOG_LEVEL = "DEBUG"
 
-FEED_EXPORT_FIELDS = ['conf', 'matched_queries', 'title','clean_title', 'citation_count', 'code_url', 'pdf_url', 'authors', 'abstract']
+FEED_EXPORT_FIELDS = ['conf', 'matched_queries', 'title', 'citation_count', 'code_url', 'pdf_url', 'authors', 'abstract']
 
 # FEEDS = {r"data.csv" : {"format" : "csv", "overwrite":False}}
 
@@ -72,6 +72,7 @@ ROBOTSTXT_OBEY = False
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    'crawl_conf.pipelines.CrawlConfPipeline': 300,
+   'crawl_conf.pipelines.CrawlDblpPipeline': 300
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

@@ -10,7 +10,6 @@ class Paper(Item):
 
     conf = Field()  # The conference name for the current paper
     title = Field()
-    clean_title = Field()
     authors = Field()
     abstract = Field()
     code_url = Field()

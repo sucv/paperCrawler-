@@ -1,28 +1,48 @@
-## Paper Crawler for Top CS/AI/ML Conferences
+## Paper Crawler for Top CS/AI/ML/NLP Conferences and Journals
 
-This is a [Scrapy](https://docs.scrapy.org/en/latest/intro/tutorial.html)-based crawler. A tutorial is [at this url](https://www.logx.xyz/scrape-papers-using-scrapy).  The crawler scrapes accepted papers from top  conferences:
+This is a [Scrapy](https://docs.scrapy.org/en/latest/intro/tutorial.html)-based crawler. A tutorial is [at this url](https://www.logx.xyz/scrape-papers-using-scrapy).  The crawler scrapes accepted papers from top  conferences and journals, including:
 
-| Year  | CVPR | ECCV | ICCV | NIPS | ICLR | ICML\* | IJCAI | AAAI | KDD\* | WWW\* | MM\* |
-|-------|-----|------|------|------|------|--------|-------|------|-------|-------|------|
-| 2023  | [x] |      |  [x]    |  [x]    |  [x]    | [x]    | [x]   |  [x]    | [x]   | [x]   | [x]  |
-| 2022  | [x] | [x]     |      |  [x]    |  [x]    | [x]    | [x]   |  [x]    | [x]   | [x]   | [x]  |
-| 2021  | [x] |      |  [x]    |  [x]    |  [x]    | [x]    | [x]   |  [x]    | [x]   | [x]   | [x]  |
-| 2020  | [x] | [x]     |      |   [x]   |  [x]    | [x]    | [x]   |  [x]    | [x]   | [x]   | [x]  |
-| 2019  | [x] |      |  [x]    |   [x]   |  [x]    | [x]    | [x]   |  [x]    | [x]   | [x]   | [x]  |
-| 2018  | [x] |  [x]    |      |  [x]    |  [x]    | [x]    | [x]   |  [x]    | [x]   | [x]   | [x]  |
-| 2017  | [x] |      |  [x]    | [x]     |  [x]    | [x]    | [x]   |  [x]    | [x]   | [x]   | [x]  |
-| older | [x] |      |  [x]    |  [x]    |      |        | [x]   |  [x]    | [x]   | [x]   | [x]  |
+
+| Year   | 2023 | 2022 | 2021 | 2020 | 2019 | 2018 | 2017 | older |
+|--------|------|------|------|------|------|------|------|-------|
+| CVPR   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| ECCV   |      | [x]  |      | [x]  |      | [x]  |      |       |
+| ICCV   | [x]  |      | [x]  |      | [x]  |      | [x]  | [x]   |
+| NIPS   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| ICLR   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  |    |
+| ICML   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  |   |
+| AAAI   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| IJCAI  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| ACM MM | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| KDD    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| WWW    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| ACL    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| EMNLP  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| NAACL  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+|        | | | | | | | | |
+| TPAMI  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| NMI    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| IJCV   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| TIP    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| TAFFC  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+
+
 
 The scraped information includes:
 
 ```text
 Conference, matched keywords, title, citation count, code url, pdf url, authors, abstract
 ```
-\* Note that some terms are not available for each paper, such as the `code url` and `pdf url`.
+
+>Note that some terms are not available for each paper, such as the `code url` and `pdf url`. Also, for journals, most of them are not directly scrawl-able.  I resort to dblp to get the paper title, then query via Semantic Scholar API. The latter will soon reach the limit (status 429). It will continue querying the same paper until got status 200. 
 
 
 ### Change Log
 
++ 04-JAN-2024
+  + Added support for ACL, EMNLP, and NAACL.
+  + Added support for top journals, including TPAMI, NMI, IJCV, TIP, and TAAFC via dblp and sematic scholar AIP.
+    + You may add your own spider in `spiders.py` by inheriting class `TpamiScrapySpider` like I did for the journals. 
 + 03-JAN-2024
   + Added the `-out` argument to specify the output path and filename.
   + Fixed urls for NIPS2023.
@@ -81,7 +101,7 @@ python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "emotion and
 More example for queries can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18)
 
 Supported arguments:
-+ `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www. Must be in lowercase, use comma to separate.
++ `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, ijcv, tip, taffc. Must be in lowercase, use comma to separate. `download_delay = 10` is used for journals, so better separate the conference and journal crawling as two processes. 
 + `years`: four-digit numbers, use comma to separate.
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
 + `out`: if specified, will save the output to the path.

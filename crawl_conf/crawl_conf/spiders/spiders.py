@@ -10,6 +10,7 @@ from semanticscholar import SemanticScholar
 from ..items import Paper
 
 import json
+from fuzzywuzzy import fuzz
 
 class BaseSpider(scrapy.Spider):
 
@@ -38,7 +39,7 @@ class BaseSpider(scrapy.Spider):
             self.count_citation_from_3rd_party_api = 1
             # If using 3rd party api, then limit the maximum request rate to 10sec/request.
             # So that the API may not kill your process due to  exceeding requests.
-            self.download_delay = 10
+            self.download_delay = 5
 
     def parse(self, response):
         raise NotImplementedError
@@ -51,14 +52,13 @@ class BaseSpider(scrapy.Spider):
         # Deliver the scraped item to `pipelines.py`.
         paper = Paper()
 
-        title, pdf_url, clean_title, authors, abstract = self.extract_data(response)
+        title, pdf_url, authors, abstract = self.extract_data(response)
         conf = response.meta['conf']
         abstract = abstract.replace("\n", " ")
 
         paper["conf"] = conf
         paper["title"] = title
         paper["pdf_url"] = pdf_url
-        paper["clean_title"] = clean_title
         paper["authors"] = authors
         paper["abstract"] = abstract
 
@@ -75,6 +75,10 @@ class CvprScrapySpider(BaseSpider):
     start_urls = [
         "https://openaccess.thecvf.com/menu",
     ]
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
         # response contains all the data scraped from the start_url, including the html source code.
@@ -136,11 +140,10 @@ class CvprScrapySpider(BaseSpider):
 
         title = inspect.cleandoc(response.xpath("//div[@id='papertitle']/text()").get())
         pdf_url = response.urljoin(response.xpath("//div[@id='content']/dl/dd/a[1]/@href").get())
-        clean_title = re.sub(r'\W+', ' ', title).lower()
         authors = inspect.cleandoc(response.xpath("//div[@id='authors']/b/i/text()").get())
         abstract = inspect.cleandoc(response.xpath("//div[@id='abstract']/text()").get())
 
-        return title, pdf_url, clean_title, authors, abstract
+        return title, pdf_url, authors, abstract
 
 
 class IccvScrapySpider(CvprScrapySpider):
@@ -149,6 +152,10 @@ class IccvScrapySpider(CvprScrapySpider):
         "https://openaccess.thecvf.com/menu",
     ]
 
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
+
 
 class EccvScrapySpider(CvprScrapySpider):
     name = 'eccv'
@@ -156,6 +163,10 @@ class EccvScrapySpider(CvprScrapySpider):
         "https://www.ecva.net/papers.php",
     ]
     base_url = "https://www.ecva.net"
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
 
@@ -174,6 +185,10 @@ class NipsScrapySpider(BaseSpider):
     start_urls = [
         "https://papers.nips.cc/",
     ]
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
 
@@ -213,7 +228,6 @@ class NipsScrapySpider(BaseSpider):
             title = inspect.cleandoc(
                 response.xpath("//div[@id='base-main-content']/div[2]/div[@id=$pid]/div[@class='maincardBody']/text()",
                                pid="maincard_" + response.url.split("=")[1]).get())
-            clean_title = re.sub(r'\W+', ' ', title).lower()
             authors = inspect.cleandoc(
                 ",".join(response.xpath("//div[@id='base-main-content']/div[2]/button/text()").extract())).replace("»",
                                                                                                                    "")
@@ -230,7 +244,7 @@ class NipsScrapySpider(BaseSpider):
 
         else:
             title = inspect.cleandoc(response.xpath("//div[@class='col']/h4/text()").get())
-            clean_title = re.sub(r'\W+', ' ', title).lower()
+
             authors = inspect.cleandoc(response.xpath("//div[@class='col']/p[position()=2]/i/text()").get())
 
             try:
@@ -241,7 +255,7 @@ class NipsScrapySpider(BaseSpider):
 
             pdf_url = response.urljoin(response.xpath("//div[@class='col']/div/a[text()='Paper']/@href").get())
 
-        return title, pdf_url, clean_title, authors, abstract
+        return title, pdf_url, authors, abstract
 
 
 class AaaiScrapySpider(BaseSpider):
@@ -249,6 +263,10 @@ class AaaiScrapySpider(BaseSpider):
     start_urls = [
         "https://aaai.org/aaai-publications/aaai-conference-proceedings/",
     ]
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
 
@@ -279,7 +297,6 @@ class AaaiScrapySpider(BaseSpider):
     def extract_data(response):
 
         title = inspect.cleandoc(response.xpath("//article[contains(@class, 'papers')]/header/h1[@class='entry-title']/text()").get())
-        clean_title = re.sub(r'\W+', ' ', title).lower()
         authors = inspect.cleandoc(
             ",".join(response.xpath("//article[contains(@class, 'papers')]/div[@class='entry-content']/div[contains(@class, 'author-wrap')]/div[@class='author-output']//p[@class='bold']/text()").extract()))
 
@@ -288,7 +305,7 @@ class AaaiScrapySpider(BaseSpider):
 
         pdf_url = response.xpath("//article[contains(@class, 'papers')]/div[@class='entry-content']/div[contains(@class, 'paper-section-wrap')][h4='Downloads:']/div[@class='pdf-button']/a/@href").get()
 
-        return title, pdf_url, clean_title, authors, abstract
+        return title, pdf_url, authors, abstract
 
 
 class IjcaiScrapySpider(BaseSpider):
@@ -296,6 +313,10 @@ class IjcaiScrapySpider(BaseSpider):
     start_urls = [
         "https://www.ijcai.org/all_proceedings",
     ]
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
         for conf in self.wanted_conf:
@@ -315,12 +336,12 @@ class IjcaiScrapySpider(BaseSpider):
     def extract_data(response):
 
         title = inspect.cleandoc(response.xpath("//div[@class='row'][1]/div/h1/text()").get())
-        clean_title = re.sub(r'\W+', ' ', title).lower()
+
         authors = inspect.cleandoc(response.xpath("//div[@class='row'][1]/div/h2/text()").get())
         abstract = inspect.cleandoc(response.xpath("//div[@class='row'][3]/div/text()").get())
         pdf_url = response.xpath("//div[@class='btn-container']/a/@href").get()
 
-        return title, pdf_url, clean_title, authors, abstract
+        return title, pdf_url, authors, abstract
 
 
 class IclrScrapySpider(BaseSpider):
@@ -328,7 +349,13 @@ class IclrScrapySpider(BaseSpider):
     start_urls = [
         "https://openreview.net/group?id=ICLR.cc&referrer=%5BHomepage%5D(%2F)",
     ]
+
+    # Default download delay when not calling semantic scholar API.
     download_delay = 5
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
 
@@ -401,7 +428,7 @@ class IclrScrapySpider(BaseSpider):
                 continue
 
             paper = Paper()
-            title, pdf_url, clean_title, authors, abstract = self.extract_data(item)
+            title, pdf_url, authors, abstract = self.extract_data(item)
 
             conf = response.meta['conf']
             abstract =abstract.replace("\n", " ")
@@ -409,7 +436,6 @@ class IclrScrapySpider(BaseSpider):
             paper["conf"] = conf
             paper["title"] = title
             paper["pdf_url"] = pdf_url
-            paper["clean_title"] = clean_title
             paper["authors"] = authors
             paper["abstract"] = abstract
 
@@ -420,13 +446,12 @@ class IclrScrapySpider(BaseSpider):
     def extract_data(item):
 
         title = inspect.cleandoc(item['content']['title'])
-        clean_title = re.sub(r'\W+', ' ', title).lower()
         authors = inspect.cleandoc(",".join(item['content']['authors']))
         abstract = inspect.cleandoc(item['content']['abstract'])
 
         pdf_id = item['content']['pdf']
         pdf_url =  "https://openreview.net" + pdf_id
-        return title, pdf_url, clean_title, authors, abstract
+        return title, pdf_url, authors, abstract
 
 
 class IcmlScrapySpider(BaseSpider):
@@ -434,6 +459,10 @@ class IcmlScrapySpider(BaseSpider):
     start_urls = [
         "https://icml.cc/",
     ]
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
         for conf in self.wanted_conf:
@@ -457,7 +486,6 @@ class IcmlScrapySpider(BaseSpider):
         title = inspect.cleandoc(
             response.xpath("//div[@id='base-main-content']/div[2]/div[@id=$pid]/div[@class='maincardBody']/text()",
                            pid="maincard_" + response.url.split("=")[1]).get())
-        clean_title = re.sub(r'\W+', ' ', title).lower()
         authors = inspect.cleandoc(
             ",".join(response.xpath("//div[@id='base-main-content']/div[2]/button/text()").extract())).replace("»", "")
         abstract = inspect.cleandoc(response.xpath(
@@ -474,7 +502,7 @@ class IcmlScrapySpider(BaseSpider):
             pdf_url = pdf_html_url[:-5] + "/" + pdf_html_url.split("/")[-1].split(".")[0] + ".pdf"
         else:
             raise   ValueError("Unknown html!!")
-        return title, pdf_url, clean_title, authors, abstract
+        return title, pdf_url, authors, abstract
 
 
 class MmScrapySpider(BaseSpider):
@@ -484,7 +512,10 @@ class MmScrapySpider(BaseSpider):
         "https://dl.acm.org/conference/mm/proceedings",
     ]
     base_url = "https://dl.acm.org"
-    download_delay = 3
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
         proceeding_urls = response.xpath("//ul[@class='conference__proceedings__container']/li/div[@class='conference__title left-bordered-title']/a/@href").extract()
@@ -534,7 +565,6 @@ class MmScrapySpider(BaseSpider):
     def extract_data(response):
 
         title = response.xpath("//div[@class='article-citations']/div[@class='citation']/div[@class='border-bottom clearfix']/h1/text()").get()
-        clean_title = re.sub(r'\W+', ' ', title).lower()
 
         authors = inspect.cleandoc(",".join(response.xpath(
             "//div[@class='article-citations']/div[@class='citation']/div[@class='border-bottom clearfix']/div[@id='sb-1']/ul/li[@class='loa__item']/a/@title").extract()))
@@ -543,7 +573,7 @@ class MmScrapySpider(BaseSpider):
 
         pdf_url = response.xpath("//div[@class='article-citations']//a[@title='PDF']/@href").get()
 
-        return title, pdf_url, clean_title, authors, abstract
+        return title, pdf_url, authors, abstract
 
 class KddScrapySpider(MmScrapySpider):
     name = 'kdd'
@@ -552,7 +582,10 @@ class KddScrapySpider(MmScrapySpider):
         "https://dl.acm.org/conference/kdd/proceedings",
     ]
     base_url = "https://dl.acm.org"
-    download_delay = 3
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
         proceeding_urls = response.xpath("//ul[@class='conference__proceedings__container']/li[@class='conference__proceedings']/div[@class='conference__title left-bordered-title']/a/@href").extract()
@@ -586,7 +619,10 @@ class WwwScrapySpider(MmScrapySpider):
     ]
     base_url = "https://dl.acm.org"
 
-    download_delay = 3
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
 
     def parse(self, response):
 
@@ -611,4 +647,193 @@ class WwwScrapySpider(MmScrapySpider):
         for doi in doi_list:
             url = self.base_url + doi
             yield scrapy.Request(url, callback=self.parse_paper, meta=meta)
+
+
+class AclScrapySpider(BaseSpider):
+    name = 'acl'
+
+    start_urls = [
+        "https://aclanthology.org/venues/acl/",
+    ]
+    base_url = "https://aclanthology.org"
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
+
+    def parse(self, response):
+        conf_urls = response.xpath("//div[@id='main-container']//div[contains(@class, 'col-sm')]//ul/li[1]/a[@class='align-middle']/@href").extract()
+        years = response.xpath("//div[@id='main-container']//div[contains(@class, 'col-sm-1')]//text()").extract()
+        proceeding_dicts = {year:conf for year, conf in zip(years, conf_urls) if year >= "2013"}
+
+        for conf in self.wanted_conf:
+            if conf[-4:] not in proceeding_dicts:
+                continue
+            url = self.base_url + proceeding_dicts[conf[-4:]]
+            meta = {"conf": conf}
+            yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
+
+    def parse_paper_list(self, response):
+        meta = {"conf": response.meta['conf']}
+        paper_urls = response.xpath(
+            "//section[@id='main']//p[contains(@class, 'd-sm-flex align-items-stretch')][position() >= 2]//strong/a/@href").extract()
+
+        for paper_url in paper_urls:
+            url = self.base_url + paper_url
+            yield scrapy.Request(url, callback=self.parse_paper, meta=meta)
+
+    @staticmethod
+    def extract_data(response):
+        title = re.sub(r'<[^>]+>', '', response.xpath("//section[@id='main']/div/h2[@id='title']").get())
+
+        authors = ",".join([author for author in response.xpath("//section[@id='main']/div/p[@class='lead']//a/text()").extract()])
+        abstract = response.xpath("//div[contains(@class, 'acl-abstract')]/span/text()").get()
+        pdf_url = response.xpath("//div[contains(@class, 'acl-paper-link-block')]/a[contains(@class, 'btn-primary')]/@href").get()
+        return title, pdf_url, authors, abstract
+
+
+class EmnlpScrapySpider(AclScrapySpider):
+    name = "emnlp"
+
+    start_urls = [
+        "https://aclanthology.org/venues/emnlp/",
+    ]
+
+    base_url = "https://aclanthology.org"
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
+
+class NaaclScrapySpider(AclScrapySpider):
+    name = "naacl"
+
+    start_urls = [
+        "https://aclanthology.org/venues/naacl/",
+    ]
+
+    base_url = "https://aclanthology.org"
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
+    }
+
+class TpamiScrapySpider(BaseSpider):
+    name = "tpami"
+
+    start_urls = [
+        "https://dblp.org/db/journals/pami/index.html",
+    ]
+
+    base_url = "https://dblp.org/db/journals/pami/"
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
+
+    def parse(self, response):
+        href_pattern = r'href="([^"]+)"'
+        year_pattern = r'\b\d{4}\b'
+        volume_html_list = response.xpath("//div[@id='info-section']/following-sibling::ul/li").extract()
+        year_list = [re.findall(year_pattern, year)[0] for year in response.xpath("//div[@id='info-section']/following-sibling::ul/li/text()[1]").extract()]
+        if not len(year_list):
+            year_list = [re.findall(year_pattern, year)[0] for year in response.xpath("//div[@id='info-section']/following-sibling::ul/li/a/text()[1]").extract()]
+        volume_dict = {re.findall(year_pattern, year)[0]: [] for year in year_list}
+        for year, volume_html in zip(year_list, volume_html_list):
+            hrefs = re.findall(href_pattern, volume_html)
+            volume_dict[year] = hrefs
+
+
+        for conf in self.wanted_conf:
+            if conf[-4:] not in volume_dict:
+                continue
+            meta = {"conf": conf}
+            urls = volume_dict[conf[-4:]]
+            for url in urls:
+                yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
+
+    def parse_paper_list(self, response):
+        titles = response.xpath("//div[@id='main']//ul[@class='publ-list']")[1].xpath("//cite[@class='data tts-content']//span[@class='title']/text()").extract()
+
+        for title in titles:
+
+            # Deliver the scraped item to `pipelines.py`.
+            paper = Paper()
+
+            paper["conf"] = response.meta['conf']
+            paper["title"] = title
+            paper["pdf_url"] = ""
+            paper["authors"] = ""
+            paper["abstract"] = ""
+
+            yield paper
+
+
+class NmiScrapySpider(TpamiScrapySpider):
+    name = "nmi"
+
+    start_urls = [
+        "https://dblp.org/db/journals/natmi/index.html",
+    ]
+
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
+class PnasScrapySpider(TpamiScrapySpider):
+    name = "pnas"
+
+    start_urls = [
+        "https://dblp.org/db/journals/pnas/index.html",
+    ]
+
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
+class IjcvScrapySpider(TpamiScrapySpider):
+    name = "ijcv"
+
+    start_urls = [
+        "https://dblp.org/db/journals/ijcv/index.html",
+    ]
+
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
+class TaffcScrapySpider(TpamiScrapySpider):
+    name = "taffc"
+
+    start_urls = [
+        "https://dblp.org/db/journals/taffco/index.html",
+    ]
+
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
+class TipScrapySpider(TpamiScrapySpider):
+    name = "tip"
+
+    start_urls = [
+        "https://dblp.org/db/journals/tip/index.html",
+    ]
+
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
 

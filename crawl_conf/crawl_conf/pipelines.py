@@ -403,3 +403,54 @@ class CrawlConfPipeline:
             return item
         else:
             raise DropItem("Missing keyword in %s" % item)
+
+class CrawlDblpPipeline:
+    def process_item(self, item, spider):
+        parser = BooleanSearchParser()
+
+        title = item['title']
+
+        clean_title = re.sub(r'\W+', ' ', title).lower()
+
+        text_body = clean_title
+
+        if spider.queries == "":
+            found = True
+        else:
+            found = parser.match(text=text_body, expr=spider.queries)
+
+        if found:
+            # Get the top 3 papers that are most relevant to the query paper.
+            # This can be time-consuming. The api provider may even kill the process if too many concurrent requests sent.
+            paper_info_list = spider.sch.search_paper(clean_title, limit=2)
+
+            # Get the citation count from SemanticScholar.
+            ratio_list = []
+            for paper_info in paper_info_list:
+                clean_paper_info_title = re.sub(r'\W+', ' ', paper_info.title).lower()
+                ratio_list.append(fuzz.ratio(clean_paper_info_title, title))
+
+            max_ratio = max(ratio_list)
+            idx_max = ratio_list.index(max_ratio)
+            paper_info = paper_info_list[idx_max]
+
+
+            title = paper_info.title
+            authors = ",".join([author['name'] for author in paper_info.authors])
+            citation_count = paper_info.citationCount
+            abstract = paper_info.abstract
+
+            pdf_url = ""
+            if paper_info.isOpenAccess:
+                pdf_url = paper_info.openAccessPdf['url']
+
+            item['title'] = title
+            item['abstract'] = abstract
+            item['authors'] = authors
+            item['citation_count'] = citation_count
+            item['pdf_url'] = pdf_url
+
+            return item
+        else:
+            raise DropItem("Missing keyword in %s" % item)
+
