@@ -42,7 +42,7 @@ Conference, matched keywords, title, citation count, code url, pdf url, authors,
 + 04-JAN-2024
   + Added support for ACL, EMNLP, and NAACL.
   + Added support for top journals, including TPAMI, NMI (Nature Machine Intelligence), IJCV, TIP, and TAAFC via dblp and sematic scholar AIP.
-    + You may add your own spider in `spiders.py` by inheriting class `TpamiScrapySpider` like I did for the journals. 
+    + You may easily add your own spider in `spiders.py` by inheriting class `TpamiScrapySpider` [like I did](https://github.com/sucv/paperCrawler/blob/b83062636a338ce612bacb4d50b22446ff44e6ca/crawl_conf/crawl_conf/spiders/spiders.py#L774C10-L774C10) for the journals. 
 + 03-JAN-2024
   + Added the `-out` argument to specify the output path and filename.
   + Fixed urls for NIPS2023.
