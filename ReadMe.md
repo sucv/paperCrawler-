@@ -34,7 +34,7 @@ The scraped information includes:
 Conference, matched keywords, title, citation count, code url, pdf url, authors, abstract
 ```
 
->Note that some terms are not available for each paper, such as the `code url` and `pdf url`. Also, for journals, most of them are not directly scrawl-able.  I resort to dblp to get the paper title, then query via Semantic Scholar API. The latter will soon reach the limit (status 429). It will continue querying the same paper until got status 200. 
+>Note that some terms are not available for each paper, such as the `code url` and `pdf url`. Also, for journals, most of them are not directly crawl-able.  I resort to dblp to get the paper title, then query via Semantic Scholar API. The latter will soon reach the limit (status 429). It will continue querying the same paper until got status 200. 
 
 
 ### Change Log
@@ -76,7 +76,7 @@ pip install scrapy semanticscholar fuzzywuzzy pyparsing git+https://github.com/s
 
 ### Usage
 
-Firstly, cd to the path where `main.py` is located. During the scrawling, a `data.csv` will be generated on-the-go in the same directory by default unless `-out` is specified.
+Firstly, cd to the path where `main.py` is located. During the crawling, a `data.csv` will be generated on-the-go in the same directory by default unless `-out` is specified.
 
 To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 without any querying, and save all the output to `all.csv`.
 ```
