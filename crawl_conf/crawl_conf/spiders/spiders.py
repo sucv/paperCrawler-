@@ -755,20 +755,24 @@ class TpamiScrapySpider(BaseSpider):
                 yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
 
     def parse_paper_list(self, response):
-        titles = response.xpath("//div[@id='main']//ul[@class='publ-list']")[1].xpath("//cite[@class='data tts-content']//span[@class='title']/text()").extract()
 
-        for title in titles:
+        numbers = response.xpath("//div[@id='main']//ul[@class='publ-list']")
 
-            # Deliver the scraped item to `pipelines.py`.
-            paper = Paper()
+        for number in numbers:
+            titles = number.xpath(".//cite[@class='data tts-content']//span[@class='title']/text()").extract()
+            for i, title in enumerate(titles):
 
-            paper["conf"] = response.meta['conf']
-            paper["title"] = title
-            paper["pdf_url"] = ""
-            paper["authors"] = ""
-            paper["abstract"] = ""
+                authors = ",".join(number.xpath(".//cite[@class='data tts-content']")[i].xpath(".//span[@itemprop='author']/a//text()").extract())
+                # Deliver the scraped item to `pipelines.py`.
 
-            yield paper
+                paper = Paper()
+                paper["conf"] = response.meta['conf']
+                paper["title"] = title
+                paper["authors"] = authors
+                paper["pdf_url"] = ""
+                paper["abstract"] = ""
+
+                yield paper
 
 
 class NmiScrapySpider(TpamiScrapySpider):

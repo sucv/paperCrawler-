@@ -41,6 +41,8 @@ Conference, matched keywords, title, citation count, code url, pdf url, authors,
 
 ### Change Log
 
++ 05-JAN-2024
+  + Greatly speeded up journal crawling, as by default only title and authors are captured directly from dblp. Specified `-count_citations` to get `abstract`, `pdf_url`, and `citation_count`.
 + 04-JAN-2024
   + Added support for ACL, EMNLP, and NAACL.
   + Added support for top journals, including TPAMI, NMI (Nature Machine Intelligence), PNAS, IJCV, IF, TIP, and TAAFC via dblp and sematic scholar AIP.
@@ -103,11 +105,11 @@ python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "emotion and
 More example for queries can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18)
 
 Supported arguments:
-+ `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, pnas, ijcv, if, tip, taffc. Must be in lowercase, use comma to separate. `download_delay = 10` is used for journals, so better separate the conference and journal crawling as two processes. 
++ `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, pnas, ijcv, if, tip, taffc. Must be in lowercase, use comma to separate. 
 + `years`: four-digit numbers, use comma to separate.
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
 + `out`: if specified, will save the output to the path.
-+ `count_citations`: if specified, will count the citations using [SemanticScholar API](https://www.semanticscholar.org/product/api). The time interval for crawling each paper will be set to 10 seconds to prevent from exceeding the maximum request limit per second .
++ `count_citations`: if specified, will count the citations using [SemanticScholar API](https://www.semanticscholar.org/product/api). The time interval for crawling each paper will be set to 10 seconds to prevent from exceeding the maximum request limit per second . Don't easily use this as it will greatly slow down the crawling!!!
 + `query_from_abstract`: if specified, will query from the abstract instead of title. Ignored for journals.
 
 
