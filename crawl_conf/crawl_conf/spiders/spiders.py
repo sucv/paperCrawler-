@@ -718,39 +718,25 @@ class NaaclScrapySpider(AclScrapySpider):
         'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
     }
 
-class TpamiScrapySpider(BaseSpider):
-    name = "tpami"
-
-    start_urls = [
-        "https://dblp.org/db/journals/pami/index.html",
-    ]
-
-    base_url = "https://dblp.org/db/journals/pami/"
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
-
+class DblpScrapySpider(BaseSpider):
 
     def parse(self, response):
         href_pattern = r'href="([^"]+)"'
         year_pattern = r'\b\d{4}\b'
-        volume_html_list = response.xpath("//div[@id='info-section']/following-sibling::ul/li").extract()
-        year_list = [re.findall(year_pattern, year)[0] for year in response.xpath("//div[@id='info-section']/following-sibling::ul/li/text()[1]").extract()]
-        if not len(year_list):
-            year_list = [re.findall(year_pattern, year)[0] for year in response.xpath("//div[@id='info-section']/following-sibling::ul/li/a/text()[1]").extract()]
-        volume_dict = {re.findall(year_pattern, year)[0]: [] for year in year_list}
-        for year, volume_html in zip(year_list, volume_html_list):
-            hrefs = re.findall(href_pattern, volume_html)
-            volume_dict[year] = hrefs
+        year_html_list = response.xpath("//div[@id='info-section']/following-sibling::ul/li")
 
+        year_dict = {}
+        for year_html in year_html_list:
+            volumn_list = re.findall(href_pattern, year_html.get())
+            year = re.findall(year_pattern, year_html.get())[0]
+            year_dict[year] = volumn_list
 
         for conf in self.wanted_conf:
-            if conf[-4:] not in volume_dict:
+            if conf[-4:] not in year_dict:
                 continue
+
             meta = {"conf": conf}
-            urls = volume_dict[conf[-4:]]
+            urls = year_dict[conf[-4:]]
             for url in urls:
                 yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
 
@@ -775,7 +761,21 @@ class TpamiScrapySpider(BaseSpider):
                 yield paper
 
 
-class NmiScrapySpider(TpamiScrapySpider):
+class TpamiScrapySpider(DblpScrapySpider):
+    name = "tpami"
+
+    start_urls = [
+        "https://dblp.org/db/journals/pami/index.html",
+    ]
+
+    base_url = "https://dblp.org/db/journals/pami/"
+    download_delay = 10
+
+    custom_settings = {
+        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
+    }
+
+class NmiScrapySpider(DblpScrapySpider):
     name = "nmi"
 
     start_urls = [
@@ -788,7 +788,7 @@ class NmiScrapySpider(TpamiScrapySpider):
         'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
     }
 
-class PnasScrapySpider(TpamiScrapySpider):
+class PnasScrapySpider(DblpScrapySpider):
     name = "pnas"
 
     start_urls = [
@@ -801,7 +801,7 @@ class PnasScrapySpider(TpamiScrapySpider):
         'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
     }
 
-class IjcvScrapySpider(TpamiScrapySpider):
+class IjcvScrapySpider(DblpScrapySpider):
     name = "ijcv"
 
     start_urls = [
@@ -814,7 +814,7 @@ class IjcvScrapySpider(TpamiScrapySpider):
         'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
     }
 
-class TaffcScrapySpider(TpamiScrapySpider):
+class TaffcScrapySpider(DblpScrapySpider):
     name = "taffc"
 
     start_urls = [
@@ -827,7 +827,7 @@ class TaffcScrapySpider(TpamiScrapySpider):
         'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
     }
 
-class TipScrapySpider(TpamiScrapySpider):
+class TipScrapySpider(DblpScrapySpider):
     name = "tip"
 
     start_urls = [
@@ -840,7 +840,7 @@ class TipScrapySpider(TpamiScrapySpider):
         'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
     }
 
-class IfScrapySpider(TpamiScrapySpider):
+class IfScrapySpider(DblpScrapySpider):
     name = "if"
 
     start_urls = [
