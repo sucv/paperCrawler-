@@ -72,7 +72,7 @@ Note that the counting is done using [SemanticScholar API](https://www.semantics
 
 More example for queries can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18)
 
-### Add Custom Spider for a journal/conf from dblp
+### Add Custom Spider
 
 In `spiders.py`, add the following code snippet in the rear:
 ```python
@@ -93,7 +93,7 @@ class TpamiScrapySpider(DblpScrapySpider): ### Name your class and inherit from 
 ```
 As shown in the example, basically you just need to inherit from `DblpScrapySpider`, and specify `name=`, and put `start_urls` to the conf/journal's dblp homepage. Leave the rest! That's all. Later you will be able to use the `name` you specified to crawl paper information.
 
-Supported arguments:
+### Supported arguments:
 + `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, pnas, ijcv, if, tip, taffc. Must be in lowercase, use comma to separate. 
 + `years`: four-digit numbers, use comma to separate.
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
@@ -111,8 +111,8 @@ Supported arguments:
   + Greatly speeded up journal crawling, as by default only title and authors are captured directly from dblp. Specified `-count_citations` to get `abstract`, `pdf_url`, and `citation_count`.
 + 04-JAN-2024
   + Added support for ACL, EMNLP, and NAACL.
-  + Added support for top journals, including TPAMI, NMI (Nature Machine Intelligence), PNAS, IJCV, IF, TIP, and TAAFC via dblp and sematic scholar AIP.
-    + You may easily add your own spider in `spiders.py` by inheriting class `TpamiScrapySpider` [like I did](https://github.com/sucv/paperCrawler/blob/b83062636a338ce612bacb4d50b22446ff44e6ca/crawl_conf/crawl_conf/spiders/spiders.py#L774C10-L774C10) for the journals. 
+  + Added support for top journals, including TPAMI, NMI (Nature Machine Intelligence), PNAS, IJCV, IF, TIP, and TAAFC via dblp and sematic scholar AIP. Example is provided.
+    + You may easily add your own spider in `spiders.py` by inheriting class `DblpScrapySpider` for the conferences and journals as a shortcut. In this way you will only get the paper title and authors. As paper titles can already provide initial information, you may manually search for your interested papers later. 
 + 03-JAN-2024
   + Added the `-out` argument to specify the output path and filename.
   + Fixed urls for NIPS2023.
