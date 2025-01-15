@@ -4,13 +4,10 @@ import re
 # To remove consecutive space and special formatting characters like \n
 import inspect
 
-from semanticscholar import SemanticScholar
-
 # We import the Paper item we defined in `items.py`.
 from ..items import Paper
 
 import json
-from fuzzywuzzy import fuzz
 
 class BaseSpider(scrapy.Spider):
 
@@ -20,8 +17,7 @@ class BaseSpider(scrapy.Spider):
         # Save the conference and keyword arguments.
         years = kwargs.get('years').split(',')
         queries = kwargs.get('queries')
-        count_citations = kwargs.get('count_citations')
-        query_from_abstract = kwargs.get('query_from_abstract')
+        nocrossref = kwargs.get('nocrossref')
 
         # Remove repeated input
         wanted_conf = []
@@ -30,16 +26,10 @@ class BaseSpider(scrapy.Spider):
                 wanted_conf.append(self.name.upper() + year)
         self.wanted_conf = wanted_conf
         self.queries = queries
-        self.query_from_abstract = query_from_abstract
 
-        self.sch = SemanticScholar()
-
-        # If counting the citations
-        if count_citations:
-            self.count_citation_from_3rd_party_api = 1
-            # If using 3rd party api, then limit the maximum request rate to 10sec/request.
-            # So that the API may not kill your process due to  exceeding requests.
-            self.download_delay = 5
+        # If not call Crossref API
+        if not nocrossref:
+            self.crossref = True
 
     def parse(self, response):
         raise NotImplementedError
@@ -54,7 +44,9 @@ class BaseSpider(scrapy.Spider):
 
         title, pdf_url, authors, abstract = self.extract_data(response)
         conf = response.meta['conf']
-        abstract = abstract.replace("\n", " ")
+
+        if abstract is not None:
+            abstract = abstract.replace("\n", " ")
 
         paper["conf"] = conf
         paper["title"] = title
@@ -76,9 +68,7 @@ class CvprScrapySpider(BaseSpider):
         "https://openaccess.thecvf.com/menu",
     ]
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
         # response contains all the data scraped from the start_url, including the html source code.
@@ -152,10 +142,7 @@ class IccvScrapySpider(CvprScrapySpider):
         "https://openaccess.thecvf.com/menu",
     ]
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
-
+    from_dblp = False
 
 class EccvScrapySpider(CvprScrapySpider):
     name = 'eccv'
@@ -164,9 +151,7 @@ class EccvScrapySpider(CvprScrapySpider):
     ]
     base_url = "https://www.ecva.net"
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
 
@@ -186,9 +171,7 @@ class NipsScrapySpider(BaseSpider):
         "https://papers.nips.cc/",
     ]
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
 
@@ -234,7 +217,6 @@ class NipsScrapySpider(BaseSpider):
             abstract = inspect.cleandoc(response.xpath(
                 "//div[@class='abstractContainer']/p/text() | //div[@class='abstractContainer']/text() | //div[@class='abstractContainer']/span/text()").get())
 
-            # ICML currently does not provide pdf link in this source. So the code below won't get anything.
             paper_id = response.xpath("//div[@class='maincard narrower poster']/@id").get()
 
             pdf_openreview_url = response.xpath(
@@ -258,54 +240,44 @@ class NipsScrapySpider(BaseSpider):
         return title, pdf_url, authors, abstract
 
 
-class AaaiScrapySpider(BaseSpider):
-    name = 'aaai'
-    start_urls = [
-        "https://aaai.org/aaai-publications/aaai-conference-proceedings/",
-    ]
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
-
-    def parse(self, response):
-
-        for conf in self.wanted_conf:
-            meta = {"conf": conf}
-            year = conf[4:].lower()
-            url = response.xpath(f"//p[contains(@class, 'link-block')]/a[contains(text(), '{year}')]/@href").get()
-            yield scrapy.Request(url, callback=self.parse_track_list, meta=meta)
-
-    def parse_track_list(self, response):
-        meta = {"conf": response.meta['conf']}
-        track_url_list = response.xpath("//main[@id='genesis-content']//ul/li/a/@href").extract()
-
-        for track_url in track_url_list:
-            url = response.urljoin(track_url)
-            yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
-
-    def parse_paper_list(self, response):
-        meta = {"conf": response.meta['conf']}
-        paper_url_list = response.xpath(
-            "//main[@id='genesis-content']//li[contains(@class, 'paper-wrap')]/h5/a/@href").extract()
-
-        for paper_url in paper_url_list:
-            url = response.urljoin(paper_url)
-            yield scrapy.Request(url, callback=self.parse_paper, meta=meta)
-
-    @staticmethod
-    def extract_data(response):
-
-        title = inspect.cleandoc(response.xpath("//article[contains(@class, 'papers')]/header/h1[@class='entry-title']/text()").get())
-        authors = inspect.cleandoc(
-            ",".join(response.xpath("//article[contains(@class, 'papers')]/div[@class='entry-content']/div[contains(@class, 'author-wrap')]/div[@class='author-output']//p[@class='bold']/text()").extract()))
-
-        abstract = inspect.cleandoc("".join(response.xpath(
-            "//article[contains(@class, 'papers')]/div[@class='entry-content']/div[contains(@class, 'paper-section-wrap')][h4='Abstract:']/div[@class='attribute-output']/p/text()").extract()))
-
-        pdf_url = response.xpath("//article[contains(@class, 'papers')]/div[@class='entry-content']/div[contains(@class, 'paper-section-wrap')][h4='Downloads:']/div[@class='pdf-button']/a/@href").get()
-
-        return title, pdf_url, authors, abstract
+# class AaaiScrapySpider(BaseSpider):
+#     name = 'aaai'
+#     start_urls = [
+#         "https://aaai.org/aaai-publications/aaai-conference-proceedings/",
+#     ]
+#
+#     from_dblp = False
+#
+#     def parse(self, response):
+#
+#         for conf in self.wanted_conf:
+#             meta = {"conf": conf}
+#             year = conf[4:].lower()
+#             url = response.xpath(f"//p[contains(@class, 'link-block')]/a[contains(text(), '{year}')]/@href").get()
+#             yield scrapy.Request(url, callback=self.parse_track_list, meta=meta)
+#
+#     def parse_track_list(self, response):
+#         meta = {"conf": response.meta['conf']}
+#         paper_url_list = response.xpath("//ul[@class='cmp_article_list articles']/li//h3[@class='title']/a/@href").extract()
+#
+#         for paper_url in paper_url_list:
+#             url = response.urljoin(paper_url)
+#             yield scrapy.Request(url, callback=self.parse_paper, meta=meta)
+#
+#
+#     @staticmethod
+#     def extract_data(response):
+#
+#         title = inspect.cleandoc(response.xpath("//article[contains(@class, 'obj_article_details')]/h1[@class='page_title']/text()").get())
+#         authors = response.xpath("//ul[@class='authors']/li/span[@class='name']/text()").getall()
+#         authors = ",".join([author.strip() for author in authors])
+#
+#         abstract = response.xpath("//section[@class='item abstract']/text()").getall()
+#         abstract = " ".join([text.strip() for text in abstract])
+#
+#         pdf_url = response.xpath("//a[contains(@class, 'obj_galley_link pdf')]/@href").get()
+#
+#         return title, pdf_url, authors, abstract
 
 
 class IjcaiScrapySpider(BaseSpider):
@@ -314,9 +286,7 @@ class IjcaiScrapySpider(BaseSpider):
         "https://www.ijcai.org/all_proceedings",
     ]
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
         for conf in self.wanted_conf:
@@ -350,16 +320,16 @@ class IclrScrapySpider(BaseSpider):
         "https://openreview.net/group?id=ICLR.cc&referrer=%5BHomepage%5D(%2F)",
     ]
 
-    # Default download delay when not calling semantic scholar API.
-    download_delay = 5
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
 
         GET_dict = {
+            "2024": {
+                "GET": "https://api2.openreview.net/notes?content.venue=ICLR 2024 {session}&details=replyCount,presentation&domain=ICLR.cc/2024/Conference&limit=1000&offset={offset}",
+                "sessions": ["oral", "spotlight", "poster"],
+                "total_paper": 3000
+            },
             "2023": {
                 "GET": "https://api.openreview.net/notes?content.venue=ICLR+2023+{session}25&details=replyCount&offset={offset}&limit=1000&invitation=ICLR.cc%2F2023%2FConference%2F-%2FBlind_Submission",
                 "sessions": ["notable+top+5%", "notable+top+25%", "poster"],
@@ -423,14 +393,15 @@ class IclrScrapySpider(BaseSpider):
 
         for item in received_data['notes']:
 
+            conf = response.meta['conf']
+            year = conf[4:]
             # If the bibtex starts with misc, it means the paper was rejected.
-            if "_bibtex" in item['content'] and item['content']['_bibtex'].startswith("@misc"):
+            if year <= "2023" and "_bibtex" in item['content'] and item['content']['_bibtex'].startswith("@misc"):
                 continue
 
             paper = Paper()
-            title, pdf_url, authors, abstract = self.extract_data(item)
+            title, pdf_url, authors, abstract = self.extract_data(item, year)
 
-            conf = response.meta['conf']
             abstract =abstract.replace("\n", " ")
 
             paper["conf"] = conf
@@ -443,13 +414,20 @@ class IclrScrapySpider(BaseSpider):
 
 
     @staticmethod
-    def extract_data(item):
+    def extract_data(item, year):
 
-        title = inspect.cleandoc(item['content']['title'])
-        authors = inspect.cleandoc(",".join(item['content']['authors']))
-        abstract = inspect.cleandoc(item['content']['abstract'])
+        if year <= "2023":
+            title = inspect.cleandoc(item['content']['title'])
+            authors = inspect.cleandoc(",".join(item['content']['authors']))
+            abstract = inspect.cleandoc(item['content']['abstract'])
+            pdf_id = item['content']['pdf']
+        else:
+            title = inspect.cleandoc(item['content']['title']['value'])
+            authors = inspect.cleandoc(",".join(item['content']['authors']['value']))
+            abstract = inspect.cleandoc(item['content']['abstract']['value'])
+            pdf_id = item['content']['pdf']['value']
 
-        pdf_id = item['content']['pdf']
+
         pdf_url =  "https://openreview.net" + pdf_id
         return title, pdf_url, authors, abstract
 
@@ -457,51 +435,41 @@ class IclrScrapySpider(BaseSpider):
 class IcmlScrapySpider(BaseSpider):
     name = 'icml'
     start_urls = [
-        "https://icml.cc/",
+        "https://icml.cc/Downloads",
     ]
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
         for conf in self.wanted_conf:
             meta = {"conf": conf}
-            url = response.urljoin("Conferences/" + conf[4:] + "/Schedule")
+            url = response.urljoin(response.url + "/" + conf[4:])
             yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
 
     def parse_paper_list(self, response):
         meta = {"conf": response.meta['conf']}
-        paper_id_list = response.xpath(
-            "//div[@id='base-main-content']/div[2]/div[3 < position()]/div[@class='maincard narrower poster']/@id").extract()
+        paper_href_list = response.xpath("//div[@class='list_html']/ul/li/a/@href").extract()
 
-        for paper_id in paper_id_list:
-            url = response.url + "?showEvent=" + paper_id.split("_")[1]
+        for paper_href in paper_href_list:
+            url = response.urljoin("https://icml.cc/" + paper_href)
 
             yield scrapy.Request(url, callback=self.parse_paper, meta=meta)
 
     @staticmethod
     def extract_data(response):
 
-        title = inspect.cleandoc(
-            response.xpath("//div[@id='base-main-content']/div[2]/div[@id=$pid]/div[@class='maincardBody']/text()",
-                           pid="maincard_" + response.url.split("=")[1]).get())
-        authors = inspect.cleandoc(
-            ",".join(response.xpath("//div[@id='base-main-content']/div[2]/button/text()").extract())).replace("»", "")
-        abstract = inspect.cleandoc(response.xpath(
-            "//div[@class='abstractContainer']/p/text() | //div[@class='abstractContainer']/text() | //div[@class='abstractContainer']/span/text()").get())
+        paper_type = inspect.cleandoc(response.xpath("//div[@class='card-header']/h3[@class='text-center ']/text()").get())
 
-        # ICML currently does not provide pdf link in this source. So the code below won't get anything.
-        paper_id = response.xpath("//div[@class='maincard narrower poster']/@id").get()
+        if paper_type == "Workshop":
+            return None
 
-        pdf_html_url = response.xpath("//div[@id=$pid]//a[contains(string(), 'PDF') or contains(string(), 'Paper')]/@href", pid=paper_id).get()
+        title = inspect.cleandoc(response.xpath("//div[@class='card-header']/h2/text()").get())
+        authors = inspect.cleandoc(response.xpath("//div[@class='card-header']/h2/following-sibling::*[1]/text()").get()).replace(" · ", ",")
+        abstract = inspect.cleandoc(" ".join(response.xpath("//div[@id='abstract_details']//div[@id='abstractExample']//text()").getall()))
+        abstract = re.sub(r"Abstract:\s*\n", "Abstract: ", abstract)
 
-        if pdf_html_url.endswith(".pdf"):
-            pdf_url = pdf_html_url
-        elif pdf_html_url.endswith(".html"):
-            pdf_url = pdf_html_url[:-5] + "/" + pdf_html_url.split("/")[-1].split(".")[0] + ".pdf"
-        else:
-            raise   ValueError("Unknown html!!")
+        pdf_url = response.xpath("//a[contains(@class, 'href_Poster') and @title='PDF']/@href").get()
+
         return title, pdf_url, authors, abstract
 
 
@@ -513,9 +481,7 @@ class MmScrapySpider(BaseSpider):
     ]
     base_url = "https://dl.acm.org"
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
         proceeding_urls = response.xpath("//ul[@class='conference__proceedings__container']/li/div[@class='conference__title left-bordered-title']/a/@href").extract()
@@ -583,9 +549,7 @@ class KddScrapySpider(MmScrapySpider):
     ]
     base_url = "https://dl.acm.org"
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
         proceeding_urls = response.xpath("//ul[@class='conference__proceedings__container']/li[@class='conference__proceedings']/div[@class='conference__title left-bordered-title']/a/@href").extract()
@@ -619,10 +583,7 @@ class WwwScrapySpider(MmScrapySpider):
     ]
     base_url = "https://dl.acm.org"
 
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
 
@@ -657,9 +618,7 @@ class AclScrapySpider(BaseSpider):
     ]
     base_url = "https://aclanthology.org"
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
     def parse(self, response):
         conf_urls = response.xpath("//div[@id='main-container']//div[contains(@class, 'col-sm')]//ul/li[1]/a[@class='align-middle']/@href").extract()
@@ -701,9 +660,7 @@ class EmnlpScrapySpider(AclScrapySpider):
 
     base_url = "https://aclanthology.org"
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
 class NaaclScrapySpider(AclScrapySpider):
     name = "naacl"
@@ -714,9 +671,7 @@ class NaaclScrapySpider(AclScrapySpider):
 
     base_url = "https://aclanthology.org"
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlConfPipeline': 300},
-    }
+    from_dblp = False
 
 class DblpScrapySpider(BaseSpider):
 
@@ -761,6 +716,68 @@ class DblpScrapySpider(BaseSpider):
                 yield paper
 
 
+class DblpConfScrapySpider(DblpScrapySpider):
+
+    def parse(self, response):
+        year_lst = response.xpath("//header[@class='h2']/h2/@id").extract()
+        year_content = response.xpath("//ul[@class='publ-list']/li[1]//a[@class='toc-link']/@href").extract()
+
+        year_dict = dict(zip(year_lst, year_content))
+
+        for conf in self.wanted_conf:
+            if conf[-4:] not in year_dict:
+                continue
+
+            meta = {"conf": conf}
+            url = year_dict[conf[-4:]]
+
+            yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
+
+
+class MultimediaScrapySpider(DblpConfScrapySpider):
+    name = 'mm'
+
+    start_urls = [
+        "https://dblp.org/db/conf/mm/index.html",
+    ]
+
+    from_dblp = True
+
+
+class WwwScrapySpider(DblpConfScrapySpider):
+    name = 'www'
+
+    start_urls = [
+        "https://dblp.org/db/conf/www/index.html",
+    ]
+
+    from_dblp = True
+
+class AaaiScrapySpider(DblpConfScrapySpider):
+    name = 'aaai'
+    start_urls = [
+        "https://dblp.org/db/conf/aaai/index.html",
+    ]
+
+    from_dblp = True
+
+class InterspeechScrapySpider(DblpConfScrapySpider):
+    name = 'interspeech'
+
+    start_urls = [
+        "https://dblp.org/db/conf/interspeech/index.html",
+    ]
+
+    from_dblp = True
+
+class IcasspScrapySpider(DblpConfScrapySpider):
+    name = 'icassp'
+
+    start_urls = [
+        "https://dblp.org/db/conf/icassp/index.html",
+    ]
+
+    from_dblp = True
 class TpamiScrapySpider(DblpScrapySpider):
     name = "tpami"
 
@@ -768,12 +785,7 @@ class TpamiScrapySpider(DblpScrapySpider):
         "https://dblp.org/db/journals/pami/index.html",
     ]
 
-    base_url = "https://dblp.org/db/journals/pami/"
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 
 class NmiScrapySpider(DblpScrapySpider):
     name = "nmi"
@@ -782,11 +794,7 @@ class NmiScrapySpider(DblpScrapySpider):
         "https://dblp.org/db/journals/natmi/index.html",
     ]
 
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 
 class PnasScrapySpider(DblpScrapySpider):
     name = "pnas"
@@ -795,11 +803,7 @@ class PnasScrapySpider(DblpScrapySpider):
         "https://dblp.org/db/journals/pnas/index.html",
     ]
 
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 
 class IjcvScrapySpider(DblpScrapySpider):
     name = "ijcv"
@@ -808,11 +812,7 @@ class IjcvScrapySpider(DblpScrapySpider):
         "https://dblp.org/db/journals/ijcv/index.html",
     ]
 
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 
 class TaffcScrapySpider(DblpScrapySpider):
     name = "taffc"
@@ -821,11 +821,7 @@ class TaffcScrapySpider(DblpScrapySpider):
         "https://dblp.org/db/journals/taffco/index.html",
     ]
 
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 
 class TipScrapySpider(DblpScrapySpider):
     name = "tip"
@@ -834,11 +830,7 @@ class TipScrapySpider(DblpScrapySpider):
         "https://dblp.org/db/journals/tip/index.html",
     ]
 
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 
 class IfScrapySpider(DblpScrapySpider):
     name = "if"
@@ -847,10 +839,6 @@ class IfScrapySpider(DblpScrapySpider):
         "https://dblp.org/db/journals/inffus/index.html",
     ]
 
-    download_delay = 10
-
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 
 

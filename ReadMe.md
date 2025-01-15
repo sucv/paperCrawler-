@@ -2,52 +2,57 @@
 
 This is a [Scrapy](https://docs.scrapy.org/en/latest/intro/tutorial.html)-based crawler. The crawler scrapes accepted papers from top  conferences and journals, including:
 
+> &ast; indicates that the abstract is not available since the query is done from dblp. The official sites of these paper either do not have consistent html structure, or they block spiders.
 
-| Year   | 2023 | 2022 | 2021 | 2020 | 2019 | 2018 | 2017 | older |
-|--------|------|------|------|------|------|------|------|-------|
-| CVPR   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| ECCV   |      | [x]  |      | [x]  |      | [x]  |      |       |
-| ICCV   | [x]  |      | [x]  |      | [x]  |      | [x]  | [x]   |
-| NIPS   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| ICLR   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  |    |
-| ICML   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  |   |
-| AAAI   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| IJCAI  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| ACM MM | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| KDD    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| WWW    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| ACL    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| EMNLP  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| NAACL  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-|        | | | | | | | | |
-| TPAMI  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| NMI    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| PNAS   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| IJCV   | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| IF     | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| TIP    | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
-| TAFFC  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]  | [x]   |
+| Conference   | Status | Since |
+|--------------|--------|-------|
+| CVPR         | [x]    | 2013  |
+| ECCV         | [x]    | 2018  |
+| ICCV         | [x]    | 2013  |
+| NIPS         | [x]    | 1987  |
+| ICLR         | [x]    | 2016  |
+| ICML         | [x]    | 2015  |
+| AAAI*        | [x]    | 1980  |
+| IJCAI        | [x]    | 2017  |
+| ACM MM*      | [x]    | 1993  |
+| KDD          | [x]    | 2015  |
+| WWW*         | [x]    | 1994  |
+| ACL          | [x]    | 2013  |
+| EMNLP        | [x]    | 2013  |
+| NAACL        | [x]    | 2013  |
+ 
+
+
+| Journal | Status | Since |
+|--------|--------|-------|
+| TPAMI*  | [x]    | 1979  |
+| NMI*   | [x]    | 2019  |
+| PNAS*  | [x]    | 1997  |
+| IJCV*  | [x]    | 1987  |
+| IF*    | [x]    | 2014  |
+| TIP*   | [x]    | 1992  |
+| TAFFC* | [x]    | 2010  |
+
+
 
 
 
 The scraped information includes:
 
 ```text
-Conference, matched keywords, title, citation count, code url, pdf url, authors, abstract
+Conference, matched keywords, title, citation count, categories, concepts, code url, pdf url, authors, abstract
 ```
-
->Note that some terms are not available for each paper, such as the `code url` and `pdf url`. Also, for journals, most of them are not directly crawl-able.  I resort to dblp to get the paper title, then query via Semantic Scholar API. The latter will soon reach the limit (status 429). It will continue querying the same paper until got status 200. 
 
 
 ### Install
 
 ```shell
-pip install scrapy semanticscholar fuzzywuzzy pyparsing git+https://github.com/sucv/paperCrawler.git
+pip install scrapy pyparsing git+https://github.com/sucv/paperCrawler.git
 ```
 
 ### Usage
 
-Firstly, cd to the path where `main.py` is located. During the crawling, a `data.csv` will be generated on-the-go in the same directory by default unless `-out` is specified.
+Firstly, cd to the path where `main.py` is located. During the crawling, a `csv` will be generated on-the-go in the same directory by default unless `-out` is specified.
 
 To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 without any querying, and save all the output to `all.csv`.
 ```
@@ -59,52 +64,61 @@ To query papers whose title includes either `emotion recognition` or `facial exp
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "(emotion recognition) or (facial expression) or multimodal"
 ```
 
-To query within paper abstracts instead of paper titles.
+More example for queries can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18). Additionally, if you do not want to acquire the citation count, categories, and concepts for each paper, add `--nocrossref` 
 ```
-python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "(emotion recognition) or (facial expression) or multimodal" --query_from_abstract  
+python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "emotion and (visual or audio or speech)" --nocrossref  
 ```
+>I believe the citation count is an important metric to qualify a paper. Also, the `Crossref API`does not have tight rate limits. Therefore, it is highly recommended to not add `--nocrossref`.
 
-Additionally, to count the citation for each matched paper. 
-```
-python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "emotion and (visual or audio or speech)" --query_from_abstract  --count_citations  
-```
-Note that the counting is done using [SemanticScholar API](https://www.semanticscholar.org/product/api), 10-second is set as the time interval for each url request to not exceed the API call limit, therefore it would be time-consuming, considering that one conference may have thousands of papers.
 
-More example for queries can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18)
 
-### Add Custom Spider
+### Add Custom Spider (A quick and lazy solution)
 
-In `spiders.py`, add the following code snippet in the rear:
+[dblp](https://dblp.org/) features consistent HTML structures, therefore, we can directly add any custom spider based on it. The only downside is that there is no abstract for any papers from it.
+
+In `spiders.py`, add the following code snippet in the rear.
+
+For journal:
 ```python
-class TpamiScrapySpider(DblpScrapySpider): ### Name your class and inherit from DblpScrapySpider
-    name = "tpami" ### Name your spider
+class TpamiScrapySpider(DblpScrapySpider):
+    name = "tpami"
 
     start_urls = [
-        "https://dblp.org/db/journals/pami/index.html",  # Specify the starting dblp page of your target conf/journal
+        "https://dblp.org/db/journals/pami/index.html",
     ]
-    
-    ### The rest remain the same.
-    base_url = "https://dblp.org/db/journals/pami/"
-    download_delay = 10
 
-    custom_settings = {
-        'ITEM_PIPELINES': {'crawl_conf.pipelines.CrawlDblpPipeline': 300},
-    }
+    from_dblp = True
 ```
-As shown in the example, basically you just need to inherit from `DblpScrapySpider`, and specify `name=`, and put `start_urls` to the conf/journal's dblp homepage. Leave the rest! That's all. Later you will be able to use the `name` you specified to crawl paper information.
+
+For conference:
+```python
+class InterspeechScrapySpider(DblpConfScrapySpider):
+    name = 'interspeech'
+
+    start_urls = [
+        "https://dblp.org/db/conf/interspeech/index.html",
+    ]
+
+    from_dblp = True
+```
+
+As shown in the example, basically you just need to inherit from `DblpScrapySpider` or `DblpConfScrapySpider`, and specify `name=` and `from_dblp = True`, and put `start_urls` to the conf/journal's dblp homepage. Leave the rest! Later you will be able to use the `name` you specified to crawl paper information.
 
 ### Supported arguments:
 + `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, pnas, ijcv, if, tip, taffc. Must be in lowercase, use comma to separate. 
 + `years`: four-digit numbers, use comma to separate.
 + `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
 + `out`: if specified, will save the output to the path.
-+ `count_citations`: if specified, will count the citations using [SemanticScholar API](https://www.semanticscholar.org/product/api). The time interval for crawling each paper will be set to 10 seconds to prevent from exceeding the maximum request limit per second . Don't easily use this as it will greatly slow down the crawling!!!
-+ `query_from_abstract`: if specified, will query from the abstract instead of title. Ignored for journals.
++ `nocrossref`: if specified, will not call CrossRef API for paper citation count, concepts, and categories.
 
 
 
 ### Change Log
 
++ 15-JAN-2024
+  + Add citation count, concepts, categories for a matched paper based on the Crossref API, with 1s cooldown for each request. For unmatched paper, the download cooldown won't be triggered.
+  + Fixed multiple out-of-date crawlers.
+  + Removed some arguments such as `count_citations` and `query_from_abstract`. Now it will call Crossref API for extra information by default, and will always query from title, not abstract.
 + 19-JAN-2024
   + Fixed an issue in which the years containing single volume and multiple volumes of a journal from dblp cannot be correctly parsed. 
 + 05-JAN-2024

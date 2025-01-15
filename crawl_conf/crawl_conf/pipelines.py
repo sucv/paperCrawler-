@@ -1,102 +1,15 @@
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+import time
+import threading
+import re
+import requests
 
-
-# useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
-
-# For fuzzy match. Sometimes, the title have slight difference between different sources.
 from fuzzywuzzy import fuzz
 
-# For regular expression
-import re
+OPENALEX_URL = "https://api.openalex.org/works"
 
-"""
-Boolean Search query parser (Based on searchparser: https://github.com/pyparsing/pyparsing/blob/master/examples/searchparser.py)
-
-version 2018-07-22
-
-This search query parser uses the excellent Pyparsing module
-(http://pyparsing.sourceforge.net/) to parse search queries by users.
-It handles:
-
-* 'and', 'or' and implicit 'and' operators;
-* parentheses;
-* quoted strings;
-* wildcards at the end of a search term (help*);
-* wildcards at the beginning of a search term (*lp);
-* non-western languages
-
-Requirements:
-* Python
-* Pyparsing
-
-SAMPLE USAGE:
-from booleansearchparser import BooleanSearchParser
-from __future__ import print_function
-bsp = BooleanSearchParser()
-text = u"wildcards at the beginning of a search term "
-exprs= [
-    u"*cards and term", #True
-    u"wild* and term",  #True
-    u"not terms",       #True
-    u"terms or begin",  #False
-]
-for expr in exprs:
-    print (bsp.match(text,expr))
-
-#non-western samples
-text = u"안녕하세요, 당신은 어떠세요?"
-exprs= [
-    u"*신은 and 어떠세요", #True
-    u"not 당신은",       #False
-    u"당신 or 당",  #False
-]
-for expr in exprs:
-    print (bsp.match(text,expr))
--------------------------------------------------------------------------------
-Copyright (c) 2006, Estrate, the Netherlands
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-* Neither the name of Estrate nor the names of its contributors may be used
-  to endorse or promote products derived from this software without specific
-  prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-CONTRIBUTORS:
-- Steven Mooij
-- Rudolph Froger
-- Paul McGuire
-- Guiem Bosch
-- Francesc Garcia
-
-TODO:
-- add more docs
-- ask someone to check my English texts
-- add more kinds of wildcards ('*' at the beginning and '*' inside a word)?
-
-"""
+# ------------- BooleanSearchParser code (unchanged) -------------
 from pyparsing import (
     Word,
     alphanums,
@@ -108,33 +21,22 @@ from pyparsing import (
     one_of,
     ParserElement,
 )
-import re
 
 ParserElement.enablePackrat()
 
-# Updated on 02 Dec 2021 according to ftp://ftp.unicode.org/Public/UNIDATA/Blocks.txt
-# (includes characters not found in the BasicMultilingualPlane)
 alphabet_ranges = [
-    # CYRILIC: https://en.wikipedia.org/wiki/Cyrillic_(Unicode_block)
-    [int("0400", 16), int("04FF", 16)],
-    # ARABIC: https://en.wikipedia.org/wiki/Arabic_(Unicode_block) (Arabic (0600–06FF)+ Syriac (0700–074F)+ Arabic Supplement (0750–077F))
-    [int("0600", 16), int("07FF", 16)],
-    # THAI: https://en.wikipedia.org/wiki/Thai_(Unicode_block)
-    [int("0E00", 16), int("0E7F", 16)],
-    # JAPANESE : https://en.wikipedia.org/wiki/Japanese_writing_system (Hiragana (3040–309F) + Katakana (30A0–30FF))
-    [int("3040", 16), int("30FF", 16)],
-    # Enclosed CJK Letters and Months
-    [int("3200", 16), int("32FF", 16)],
-    # CHINESE: https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
-    [int("4E00", 16), int("9FFF", 16)],
-    # KOREAN : https://en.wikipedia.org/wiki/Hangul
-    [int("1100", 16), int("11FF", 16)],
+    [int("0400", 16), int("04FF", 16)],  # CYRILIC
+    [int("0600", 16), int("07FF", 16)],  # ARABIC
+    [int("0E00", 16), int("0E7F", 16)],  # THAI
+    [int("3040", 16), int("30FF", 16)],  # JAPANESE
+    [int("3200", 16), int("32FF", 16)],  # Enclosed CJK Letters and Months
+    [int("4E00", 16), int("9FFF", 16)],  # CHINESE
+    [int("1100", 16), int("11FF", 16)],  # KOREAN
     [int("3130", 16), int("318F", 16)],
     [int("A960", 16), int("A97F", 16)],
     [int("AC00", 16), int("D7AF", 16)],
     [int("D7B0", 16), int("D7FF", 16)],
-    # Halfwidth and Fullwidth Forms
-    [int("FF00", 16), int("FFEF", 16)],
+    [int("FF00", 16), int("FFEF", 16)],  # Halfwidth and Fullwidth Forms
 ]
 
 
@@ -146,7 +48,7 @@ class BooleanSearchParser:
             "not": self.evaluateNot,
             "parenthesis": self.evaluateParenthesis,
             "quotes": self.evaluateQuotes,
-            "word": self.evaluateWord,
+            "word": self.evaluateWord,  # if no wildcards
             "wordwildcardprefix": self.evaluateWordWildcardPrefix,
             "wordwildcardsufix": self.evaluateWordWildcardSufix,
         }
@@ -155,25 +57,9 @@ class BooleanSearchParser:
         self.words = []
 
     def parser(self):
-        """
-        This function returns a parser.
-        The grammar should be like most full text search engines (Google, Tsearch, Lucene).
-
-        Grammar:
-        - a query consists of alphanumeric words, with an optional '*'
-          wildcard at the end or the beginning of a word
-        - a sequence of words between quotes is a literal string
-        - words can be used together by using operators ('and' or 'or')
-        - words with operators can be grouped with parenthesis
-        - a word or group of words can be preceded by a 'not' operator
-        - the 'and' operator precedes an 'or' operator
-        - if an operator is missing, use an 'and' operator
-        """
         operatorOr = Forward()
 
         alphabet = alphanums
-
-        # support for non-western alphabets
         for lo, hi in alphabet_ranges:
             alphabet += "".join(chr(c) for c in range(lo, hi + 1) if not chr(c).isspace())
 
@@ -183,91 +69,93 @@ class BooleanSearchParser:
         operatorQuotesContent << ((operatorWord + operatorQuotesContent) | operatorWord)
 
         operatorQuotes = (
-            Group(Suppress('"') + operatorQuotesContent + Suppress('"')).set_results_name(
-                "quotes"
-            )
+            Group(Suppress('"') + operatorQuotesContent + Suppress('"')).set_results_name("quotes")
             | operatorWord
         )
 
         operatorParenthesis = (
-            Group(Suppress("(") + operatorOr + Suppress(")")).set_results_name(
-                "parenthesis"
-            )
+            Group(Suppress("(") + operatorOr + Suppress(")")).set_results_name("parenthesis")
             | operatorQuotes
         )
 
         operatorNot = Forward()
         operatorNot << (
-            Group(Suppress(CaselessKeyword("not")) + operatorNot).set_results_name(
-                "not"
-            )
+            Group(Suppress(CaselessKeyword("not")) + operatorNot).set_results_name("not")
             | operatorParenthesis
         )
 
         operatorAnd = Forward()
         operatorAnd << (
-            Group(
-                operatorNot + Suppress(CaselessKeyword("and")) + operatorAnd
-            ).set_results_name("and")
-            | Group(
-                operatorNot + OneOrMore(~one_of("and or") + operatorAnd)
-            ).set_results_name("and")
+            Group(operatorNot + Suppress(CaselessKeyword("and")) + operatorAnd).set_results_name("and")
+            # implicit AND if operator is missing
+            | Group(operatorNot + OneOrMore(~one_of("and or") + operatorAnd)).set_results_name("and")
             | operatorNot
         )
 
         operatorOr << (
-            Group(
-                operatorAnd + Suppress(CaselessKeyword("or")) + operatorOr
-            ).set_results_name("or")
+            Group(operatorAnd + Suppress(CaselessKeyword("or")) + operatorOr).set_results_name("or")
             | operatorAnd
         )
 
         return operatorOr.parse_string
 
     def evaluateAnd(self, argument):
-        return all(self.evaluate(arg) for arg in argument)
+        overall_found = True
+        overall_tokens = set()
+        for arg in argument:
+            found, tokens = self.evaluate(arg)
+            if not found:
+                return (False, set())
+            overall_found = overall_found and found
+            overall_tokens |= tokens
+        return (overall_found, overall_tokens)
 
     def evaluateOr(self, argument):
-        return any(self.evaluate(arg) for arg in argument)
+        any_found = False
+        union_tokens = set()
+        for arg in argument:
+            found, tokens = self.evaluate(arg)
+            if found:
+                any_found = True
+                union_tokens |= tokens
+        return (any_found, union_tokens if any_found else set())
 
     def evaluateNot(self, argument):
-        return self.GetNot(self.evaluate(argument[0]))
+        found, tokens = self.evaluate(argument[0])
+        if found:
+            return (False, set())
+        else:
+            return (True, set())
 
     def evaluateParenthesis(self, argument):
         return self.evaluate(argument[0])
 
     def evaluateQuotes(self, argument):
-        """Evaluate quoted strings
-
-        First is does an 'and' on the individual search terms, then it asks the
-        function GetQuoted to only return the subset of ID's that contain the
-        literal string.
-        """
-        # r = set()
-        r = False
-        search_terms = []
-        for item in argument:
-            search_terms.append(item[0])
-            r = r and self.evaluate(item)
-        return self.GetQuotes(" ".join(search_terms), r)
+        phrase = " ".join(tok[0] for tok in argument)
+        if phrase in self.text:
+            return (True, {phrase})
+        else:
+            return (False, set())
 
     def evaluateWord(self, argument):
-        wildcard_count = argument[0].count("*")
+        raw_word = argument[0]
+        wildcard_count = raw_word.count("*")
         if wildcard_count > 0:
-            if wildcard_count == 1 and argument[0].startswith("*"):
-                return self.GetWordWildcard(argument[0][1:], method="endswith")
-            if wildcard_count == 1 and argument[0].endswith("*"):
-                return self.GetWordWildcard(argument[0][:-1], method="startswith")
-            else:
-                _regex = argument[0].replace("*", ".+")
-                matched = False
-                for w in self.words:
-                    matched = bool(re.search(_regex, w))
-                    if matched:
-                        break
-                return matched
-
-        return self.GetWord(argument[0])
+            # Single '*' at start -> endswith
+            if wildcard_count == 1 and raw_word.startswith("*"):
+                return self.GetWordWildcard(raw_word[1:], method="endswith")
+            # Single '*' at end -> startswith
+            if wildcard_count == 1 and raw_word.endswith("*"):
+                return self.GetWordWildcard(raw_word[:-1], method="startswith")
+            # Otherwise -> treat as regex
+            _regex = raw_word.replace("*", ".*")
+            matched = set()
+            for w in self.words:
+                if re.search(_regex, w):
+                    matched.add(w)
+            return ((len(matched) > 0), matched)
+        # no wildcard
+        return self.GetWord(raw_word)
 
     def evaluateWordWildcardPrefix(self, argument):
         return self.GetWordWildcard(argument[0], method="endswith")
@@ -279,186 +167,104 @@ class BooleanSearchParser:
         return self._methods[argument.getName()](argument)
 
     def Parse(self, query):
-        return self.evaluate(self._parser(query)[0])
+        parsed = self._parser(query)[0]
+        return self.evaluate(parsed)
 
     def GetWord(self, word):
-        return word in self.words
+        if word in self.words:
+            return (True, {word})
+        return (False, set())
 
     def GetWordWildcard(self, word, method="startswith"):
-        matched = False
+        matched = set()
         for w in self.words:
-            matched = getattr(w, method)(word)
-            if matched:
-                break
-        return matched
-
-    """
-    def GetKeyword(self, name, value):
-        return set()
-
-    def GetBetween(self, min, max):
-        print (min,max)
-        return set()
-    """
-
-    def GetQuotes(self, search_string, tmp_result):
-        return search_string in self.text
-
-    def GetNot(self, not_set):
-        return not not_set
+            if getattr(w, method)(word):
+                matched.add(w)
+        return ((len(matched) > 0), matched)
 
     def _split_words(self, text):
         words = []
-        """
-        >>> import string
-        >>> string.punctuation
-        '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
-        """
-        # it will keep @, # and
-        # usernames and hashtags can contain dots, so a double check is done
         r = re.compile(r"[\s{}]+".format(re.escape("!\"$%&'()*+,-/:;<=>?[\\]^`{|}~")))
         _words = r.split(text)
         for _w in _words:
             if "." in _w and not _w.startswith("#") and not _w.startswith("@"):
-                for __w in _w.split("."):
-                    words.append(__w)
-                continue
+                words.extend(_w.split("."))
+            else:
+                words.append(_w)
+        return [w for w in words if w]
 
-            words.append(_w)
-
-        return words
-
-    def match(self, text, expr):
+    def match_with_tokens(self, text, expr):
         self.text = text
         self.words = self._split_words(text)
-
         return self.Parse(expr)
 
+    def match(self, text, expr):
+        found, _ = self.match_with_tokens(text, expr)
+        return found
 
 
-class CrawlConfPipeline:
+# ------------------------------- NEW Code / Changes -------------------------------
+import time
+import threading
+
+class CrawlPipeline:
+    # These three attributes are newly added for rate-limiting:
+    rate_limit_lock = threading.Lock()
+    last_request_time = 0
+    COOLDOWN_SECONDS = 1  # Wait 1s between external requests
 
     def process_item(self, item, spider):
         parser = BooleanSearchParser()
-        # Process the item one at a time.
         abstract = item["abstract"]
         title = item["title"]
 
         clean_title = re.sub(r'\W+', ' ', title).lower()
-
-        # replace any special characters from the abstract with a space.
-        clean_abstract = re.sub(r'\W+\-', ' ', abstract).lower()
-        clean_abstract = ' '.join(clean_abstract.split())
-        # clean_abstract = re.sub('[^a-zA-Z.-]+', ' ', abstract)
-        # Stem each tokens so that different time tensions and plurals are restored.
-        citation_count = -1
-
-
-        # parsed_queries = parse_conditions(spider.queries)
-
         text_body = clean_title
-        if spider.query_from_abstract:
-            text_body = clean_abstract
 
+        # parse queries
         if spider.queries == "":
             found = True
+            matched_tokens = set()
         else:
-            found = parser.match(text=text_body, expr=spider.queries)
+            found, matched_tokens = parser.match_with_tokens(
+                text=text_body, expr=spider.queries
+            )
 
-        # found, matched_queries = querying(parsed_queries, text_body)
-        # found = text_search(spider.queries, text_body)
-
-
-        # If the queries are found in the abstract, then return the item, otherwise drop it.
         if found:
+            if not spider.from_dblp and abstract is not None:
+                item["code_url"] = re.findall(r'(https?://\S+)', abstract)
 
-            # Try to get the code url. The code extract any url from the abstract and take them as the code url.
-            item["code_url"] = re.findall(r'(https?://\S+)', abstract)
+            citation_count = -1
+            paper_categories = ""
+            paper_concepts = ""
 
-            if hasattr(spider, "count_citation_from_3rd_party_api"):
+            # Only call external API if the spider says so
+            if spider.crossref:
+                params = {"search": clean_title}
 
-                # Get the top 3 papers that are most relevant to the query paper.
-                # This can be time-consuming. The api provider may even kill the process if too many concurrent requests sent.
-                paper_info_list = spider.sch.search_paper(clean_title, limit=3)
+                # --- NEW: This block is now rate-limited ---
+                with self.rate_limit_lock:
+                    now = time.time()
+                    elapsed = now - self.last_request_time
+                    if elapsed < self.COOLDOWN_SECONDS:
+                        time.sleep(self.COOLDOWN_SECONDS - elapsed)
 
-                # Get the citation count from SemanticScholar.
-                ratio_list = []
-                for paper_info in paper_info_list:
-                    clean_paper_info_title = re.sub(r'\W+', ' ', paper_info.title).lower()
-                    ratio_list.append(fuzz.ratio(clean_paper_info_title, clean_title))
-                    if clean_paper_info_title == clean_title:
-                        citation_count = paper_info.citationCount
-                        break
+                    response = requests.get(OPENALEX_URL, params=params)
+                    self.last_request_time = time.time()
+                # --- END of rate-limited block ---
 
-                # If the paper title does not match the query, then use the most similar one according to the fuzzy matching
-                if citation_count == -1:
-                    max_ratio = max(ratio_list)
-                    idx_max = ratio_list.index(max_ratio)
-                    paper_info = paper_info_list[idx_max]
-                    citation_count = paper_info.citationCount
-
+                if response.status_code == 200:
+                    data = response.json()
+                    if data["results"]:
+                        paper = data["results"][0]
+                        citation_count = paper["cited_by_count"]
+                        paper_categories = ",".join([paper["topics"][i]['display_name'] for i in range(len(paper["topics"]))])
+                        paper_concepts = ",".join([paper["concepts"][i]['display_name'] for i in range(len(paper["concepts"]))])
 
             item["citation_count"] = citation_count
-            item["matched_queries"] = spider.queries
+            item["matched_queries"] = ",".join(list(matched_tokens))
+            item["categories"] = paper_categories
+            item["concepts"] = paper_concepts
             return item
         else:
             raise DropItem("Missing keyword in %s" % item)
-
-class CrawlDblpPipeline:
-    def process_item(self, item, spider):
-        parser = BooleanSearchParser()
-
-        title = item['title']
-        authors = item['authors']
-
-        clean_title = re.sub(r'\W+', ' ', title).lower()
-
-        text_body = clean_title
-
-        if spider.queries == "":
-            found = True
-        else:
-            found = parser.match(text=text_body, expr=spider.queries)
-
-        if found:
-            # Get the top 3 papers that are most relevant to the query paper.
-            # This can be time-consuming. The api provider may even kill the process if too many concurrent requests sent.
-
-            if hasattr(spider, "count_citation_from_3rd_party_api"):
-                paper_info_list = spider.sch.search_paper(clean_title, limit=2)
-
-                # Get the citation count from SemanticScholar.
-                ratio_list = []
-                for paper_info in paper_info_list:
-                    clean_paper_info_title = re.sub(r'\W+', ' ', paper_info.title).lower()
-                    ratio_list.append(fuzz.ratio(clean_paper_info_title, title))
-
-                max_ratio = max(ratio_list)
-                idx_max = ratio_list.index(max_ratio)
-                paper_info = paper_info_list[idx_max]
-
-
-                title = paper_info.title
-                authors = ",".join([author['name'] for author in paper_info.authors])
-                citation_count = paper_info.citationCount
-                abstract = paper_info.abstract
-
-                pdf_url = ""
-                if paper_info.isOpenAccess:
-                    pdf_url = paper_info.openAccessPdf['url']
-
-                item['title'] = title
-                item['abstract'] = abstract
-                item['authors'] = authors
-                item['citation_count'] = citation_count
-                item['pdf_url'] = pdf_url
-            else:
-                item['abstract'] = ""
-                item['authors'] = authors
-                item['citation_count'] = ""
-                item['pdf_url'] = ""
-
-            return item
-        else:
-            raise DropItem("Missing keyword in %s" % item)
-
