@@ -115,7 +115,7 @@ As shown in the example, basically you just need to inherit from `DblpScrapySpid
 
 ### Change Log
 
-+ 15-JAN-2024
++ 15-JAN-2025
   + Add citation count, concepts, categories for a matched paper based on the Crossref API, with 1s cooldown for each request. For unmatched paper, the download cooldown won't be triggered.
   + Fixed multiple out-of-date crawlers.
   + Removed some arguments such as `count_citations` and `query_from_abstract`. Now it will call Crossref API for extra information by default, and will always query from title, not abstract.
