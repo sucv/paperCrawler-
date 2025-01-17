@@ -314,6 +314,43 @@ class IjcaiScrapySpider(BaseSpider):
         return title, pdf_url, authors, abstract
 
 
+class InterspeechScrapySpider(BaseSpider):
+    name = 'interspeech'
+    start_urls = [
+        "https://www.isca-archive.org/index.html",
+    ]
+
+    base_url = "https://www.isca-archive.org/"
+
+    from_dblp = False
+
+    def parse(self, response):
+        for conf in self.wanted_conf:
+            meta = {"conf": conf}
+            year = conf[-4:]
+            url = f"{self.base_url}/interspeech_{year}/index.html"
+            yield scrapy.Request(url, callback=self.parse_paper_list, meta=meta)
+
+    def parse_paper_list(self, response):
+        meta = {"conf": response.meta['conf']}
+        paper_url_list = [u for u in response.xpath("//a[@class='w3-text']/@href").extract() if not u.startswith("#")]
+
+        for paper_url in paper_url_list:
+            url = response.url.replace("index.html", paper_url)
+            yield scrapy.Request(url, callback=self.parse_paper, meta=meta)
+
+    @staticmethod
+    def extract_data(response):
+
+        title = inspect.cleandoc(response.xpath("//div[@id='global-info']/h3[@class='w3-center']/text()").get())
+
+        authors = inspect.cleandoc(response.xpath("//div[@id='global-info']/h5[@class='w3-center']/text()").get())
+        abstract = inspect.cleandoc(response.xpath("//div[@id='abstract']/p/text()").get())
+        pdf_url = response.url.replace(response.url[-4:], "pdf")
+
+        return title, pdf_url, authors, abstract
+
+
 class IclrScrapySpider(BaseSpider):
     name = 'iclr'
     start_urls = [
@@ -761,14 +798,6 @@ class AaaiScrapySpider(DblpConfScrapySpider):
 
     from_dblp = True
 
-class InterspeechScrapySpider(DblpConfScrapySpider):
-    name = 'interspeech'
-
-    start_urls = [
-        "https://dblp.org/db/conf/interspeech/index.html",
-    ]
-
-    from_dblp = True
 
 class IcasspScrapySpider(DblpConfScrapySpider):
     name = 'icassp'
@@ -837,6 +866,16 @@ class IfScrapySpider(DblpScrapySpider):
 
     start_urls = [
         "https://dblp.org/db/journals/inffus/index.html",
+    ]
+
+    from_dblp = True
+
+
+class TspScrapySpider(DblpScrapySpider):
+    name = "tsp"
+
+    start_urls = [
+        "https://dblp.org/db/journals/tsp/index.html",
     ]
 
     from_dblp = True

@@ -1,84 +1,104 @@
+## Table of Contents
+
+- [Paper Crawler for Top CS/AI/ML/NLP Conferences and Journals](#paper-crawler-for-top-csai-mlnlp-conferences-and-journals)
+  - [Supported Conferences](#supported-conferences)
+  - [Supported Journals](#supported-journals)
+  - [Scraped Information](#scraped-information)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Example Commands](#example-commands)
+- [Adding a Custom Spider (Quick & Lazy Solution)](#adding-a-custom-spider-quick--lazy-solution)
+  - [Adding a Journal Spider](#adding-a-journal-spider)
+  - [Adding a Conference Spider](#adding-a-conference-spider)
+  - [Explanation](#explanation)
+- [Supported Arguments](#supported-arguments)
+- [Change Log](#change-log)
+
 ## Paper Crawler for Top CS/AI/ML/NLP Conferences and Journals
 
-This is a [Scrapy](https://docs.scrapy.org/en/latest/intro/tutorial.html)-based crawler. The crawler scrapes accepted papers from top  conferences and journals, including:
+This is a [Scrapy](https://docs.scrapy.org/en/latest/intro/tutorial.html)-based crawler. The crawler scrapes accepted papers from top conferences and journals, including:
 
-> &ast; indicates that the abstract is not available since the query is done from dblp. The official sites of these paper either do not have consistent html structure, or they block spiders.
+> &ast; Indicates that the abstract is not available since the query is done from DBLP. The official sites of these papers either do not have a consistent HTML structure or block spiders.
 
-| Conference   | Status | Since |
-|--------------|--------|-------|
-| CVPR         | [x]    | 2013  |
-| ECCV         | [x]    | 2018  |
-| ICCV         | [x]    | 2013  |
-| NIPS         | [x]    | 1987  |
-| ICLR         | [x]    | 2016  |
-| ICML         | [x]    | 2015  |
-| AAAI*        | [x]    | 1980  |
-| IJCAI        | [x]    | 2017  |
-| ACM MM*      | [x]    | 1993  |
-| KDD          | [x]    | 2015  |
-| WWW*         | [x]    | 1994  |
-| ACL          | [x]    | 2013  |
-| EMNLP        | [x]    | 2013  |
-| NAACL        | [x]    | 2013  |
- 
+### Supported Conferences
 
+| Conference  | Status | Since |
+|-------------|--------|-------|
+| CVPR        | ✅    | 2013  |
+| ECCV        | ✅    | 2018  |
+| ICCV        | ✅    | 2013  |
+| NeurIPS     | ✅    | 1987  |
+| ICLR        | ✅    | 2016  |
+| ICML        | ✅    | 2015  |
+| AAAI*       | ✅    | 1980  |
+| IJCAI       | ✅    | 2017  |
+| ACM MM*     | ✅    | 1993  |
+| KDD         | ✅    | 2015  |
+| WWW*        | ✅    | 1994  |
+| ACL         | ✅    | 2013  |
+| EMNLP       | ✅    | 2013  |
+| NAACL       | ✅    | 2013  |
+| Interspeech | ✅    | 1987  |
+| ICASSP*     | ✅    | 1976  |
+
+### Supported Journals
 
 | Journal | Status | Since |
-|--------|--------|-------|
-| TPAMI*  | [x]    | 1979  |
-| NMI*   | [x]    | 2019  |
-| PNAS*  | [x]    | 1997  |
-| IJCV*  | [x]    | 1987  |
-| IF*    | [x]    | 2014  |
-| TIP*   | [x]    | 1992  |
-| TAFFC* | [x]    | 2010  |
+|---------|--------|-------|
+| TPAMI*  | ✅    | 1979  |
+| NMI*    | ✅    | 2019  |
+| PNAS*   | ✅    | 1997  |
+| IJCV*   | ✅    | 1987  |
+| IF*     | ✅    | 2014  |
+| TIP*    | ✅    | 1992  |
+| TAFFC*  | ✅    | 2010  |
+| TSP*    | ✅    | 1991  |
 
+### Scraped Information
 
-
-
-
-The scraped information includes:
+The following information is extracted from each paper:
 
 ```text
-Conference, matched keywords, title, citation count, categories, concepts, code url, pdf url, authors, abstract
+Conference, matched keywords, title, citation count, categories, concepts, code URL, PDF URL, authors, abstract
 ```
 
-
-### Install
+## Installation
 
 ```shell
 pip install scrapy pyparsing git+https://github.com/sucv/paperCrawler.git
 ```
 
-### Usage
+## Usage
 
-Firstly, cd to the path where `main.py` is located. During the crawling, a `csv` will be generated on-the-go in the same directory by default unless `-out` is specified.
+First, navigate to the directory where `main.py` is located. During crawling, a CSV file will be generated in the same directory by default unless `-out` is specified.
 
-To get all papers from CVPR and ECCV held in 2021, 2022, and 2023 without any querying, and save all the output to `all.csv`.
-```
+### Example Commands
+
+#### Get all papers from CVPR, ICCV, and ECCV (2021-2023) without querying and save output to `all.csv`
+```shell
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "" -out "all.csv"
 ```
 
-To query papers whose title includes either `emotion recognition` or `facial expression` or `multimodal`. 
-```
+#### Query papers with titles containing `emotion recognition`, `facial expression`, or `multimodal`
+```shell
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "(emotion recognition) or (facial expression) or multimodal"
 ```
 
-More example for queries can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18). Additionally, if you do not want to acquire the citation count, categories, and concepts for each paper, add `--nocrossref` 
-```
+#### Query papers with more advanced boolean expressions
+```shell
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "emotion and (visual or audio or speech)" --nocrossref  
 ```
->I believe the citation count is an important metric to qualify a paper. Also, the `Crossref API`does not have tight rate limits. Therefore, it is highly recommended to not add `--nocrossref`.
 
+> **Note:** Citation count is an important metric for evaluating a paper. Since the `Crossref API` does not have strict rate limits, it is recommended **not** to use `--nocrossref` unless necessary.
 
+## Adding a Custom Spider (Quick & Lazy Solution)
 
-### Add Custom Spider (A quick and lazy solution)
+[dblp](https://dblp.org/) provides consistent HTML structures, making it easy to add custom spiders for publishers. You can quickly create a spider for any conference or journal. However, abstracts are unavailable through DBLP. Nonetheless, useful details like citation count, categories, and concepts can still be extracted.
 
-[dblp](https://dblp.org/) features consistent HTML structures, therefore, we can directly add any custom spider based on it. The only downside is that there is no abstract for any papers from it.
+### Adding a Journal Spider
 
-In `spiders.py`, add the following code snippet in the rear.
+In `spiders.py`, add the following code:
 
-For journal:
 ```python
 class TpamiScrapySpider(DblpScrapySpider):
     name = "tpami"
@@ -90,31 +110,35 @@ class TpamiScrapySpider(DblpScrapySpider):
     from_dblp = True
 ```
 
-For conference:
+### Adding a Conference Spider
+
 ```python
 class InterspeechScrapySpider(DblpConfScrapySpider):
-    name = 'interspeech'
+    name = 'icassp'
 
     start_urls = [
-        "https://dblp.org/db/conf/interspeech/index.html",
+        "https://dblp.org/db/conf/icassp/index.html",
     ]
 
     from_dblp = True
 ```
 
-As shown in the example, basically you just need to inherit from `DblpScrapySpider` or `DblpConfScrapySpider`, and specify `name=` and `from_dblp = True`, and put `start_urls` to the conf/journal's dblp homepage. Leave the rest! Later you will be able to use the `name` you specified to crawl paper information.
+### Explanation
 
-### Supported arguments:
-+ `confs`: cvpr, iccv, eccv, aaai, ijcai, nips, iclr, icml, mm, kdd, www, acl, emnlp, naacl, tpami, nmi, pnas, ijcv, if, tip, taffc. Must be in lowercase, use comma to separate. 
-+ `years`: four-digit numbers, use comma to separate.
-+ `queries`: a case-insensitive string containing `()`, `and`, `or`, `not` and wildcard  `*` for querying within the paper titles or abstracts, borrowed from [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
-+ `out`: if specified, will save the output to the path.
-+ `nocrossref`: if specified, will not call CrossRef API for paper citation count, concepts, and categories.
+Simply inherit from `DblpScrapySpider` or `DblpConfScrapySpider`, set `name=`, set `from_dblp = True`, and provide `start_urls` pointing to the DBLP homepage of the conference/journal. The rest is handled automatically. Later, you can use the specified `name` to crawl paper information.
 
+## Supported Arguments
 
+- `confs`: A list of supported conferences and journals (must be lowercase, separated by commas).
+- `years`: A list of four-digit years (separated by commas).
+- `queries`: A case-insensitive query string supporting `()`, `and`, `or`, `not`, and wildcard `*`, based on [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
+- `out`: Specifies the output file path.
+- `nocrossref`: Disables fetching citation count, concepts, and categories via CrossRef API.
 
-### Change Log
+## Change Log
 
++ 17-JAN-2025
+  + Add spiders for Interspeech, TSP, and ICASSP.
 + 15-JAN-2025
   + Add citation count, concepts, categories for a matched paper based on the Crossref API, with 1s cooldown for each request. For unmatched paper, the download cooldown won't be triggered.
   + Fixed multiple out-of-date crawlers.
