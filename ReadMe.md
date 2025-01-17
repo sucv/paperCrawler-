@@ -83,7 +83,7 @@ python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "" -out "all
 ```shell
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "(emotion recognition) or (facial expression) or multimodal"
 ```
-> **Note:** More example for queries with AND, OR, (), wildcard can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18).
+> **Note:** More examples for queries with AND, OR, (), wildcard can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18).
 
 #### Query papers with more advanced boolean expressions
 ```shell
