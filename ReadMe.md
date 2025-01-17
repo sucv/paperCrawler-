@@ -83,6 +83,7 @@ python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "" -out "all
 ```shell
 python main.py -confs cvpr,iccv,eccv -years 2021,2022,2023 -queries "(emotion recognition) or (facial expression) or multimodal"
 ```
+> **Note:** More example for queries with AND, OR, (), wildcard can be found [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18).
 
 #### Query papers with more advanced boolean expressions
 ```shell
@@ -131,7 +132,7 @@ Simply inherit from `DblpScrapySpider` or `DblpConfScrapySpider`, set `name=`, s
 
 - `confs`: A list of supported conferences and journals (must be lowercase, separated by commas).
 - `years`: A list of four-digit years (separated by commas).
-- `queries`: A case-insensitive query string supporting `()`, `and`, `or`, `not`, and wildcard `*`, based on [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py).
+- `queries`: A case-insensitive query string supporting `()`, `and`, `or`, `not`, and wildcard `*`, based on [pyparsing](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py). See examples [here](https://github.com/pyparsing/pyparsing/blob/master/examples/booleansearchparser.py#L329C18-L329C18).
 - `out`: Specifies the output file path.
 - `nocrossref`: Disables fetching citation count, concepts, and categories via CrossRef API.
 
