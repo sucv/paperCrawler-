@@ -14,7 +14,7 @@ NEWSPIDER_MODULE = 'crawl_conf.spiders'
 
 LOG_LEVEL = "DEBUG"
 
-FEED_EXPORT_FIELDS = ['conf', 'matched_queries', 'title', 'citation_count', 'categories', 'concepts', 'code_url', 'pdf_url', 'authors', 'abstract']
+FEED_EXPORT_FIELDS = ['conf', 'matched_queries', 'title', 'citation_count', 'categories', 'concepts', 'code_url', 'pdf_url', 'authors', 'abstract', 'doi']
 
 # FEEDS = {r"data.csv" : {"format" : "csv", "overwrite":False}}
 
