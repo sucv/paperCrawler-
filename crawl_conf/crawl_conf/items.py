@@ -18,3 +18,4 @@ class Paper(Item):
     pdf_url = Field()  # The PDF url for the paper.
     categories = Field()
     concepts = Field()
+    doi = Field()

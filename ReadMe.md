@@ -59,7 +59,7 @@ This is a [Scrapy](https://docs.scrapy.org/en/latest/intro/tutorial.html)-based 
 The following information is extracted from each paper:
 
 ```text
-Conference, matched keywords, title, citation count, categories, concepts, code URL, PDF URL, authors, abstract
+Conference, matched keywords, title, citation count, categories, concepts, code URL, PDF URL, authors, abstract, doi
 ```
 
 ## Installation
@@ -138,6 +138,8 @@ Simply inherit from `DblpScrapySpider` or `DblpConfScrapySpider`, set `name=`, s
 
 ## Change Log
 
++ 7-FEB-2025
+  + Fixed a bug in which the top result from crossref API might not be the current paper, leading to totally wrong information on citation count, concepts, and categories.
 + 17-JAN-2025
   + Add spiders for Interspeech, TSP, and ICASSP.
 + 15-JAN-2025

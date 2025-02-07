@@ -6,6 +6,7 @@ import requests
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
 from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 OPENALEX_URL = "https://api.openalex.org/works"
 
@@ -235,6 +236,7 @@ class CrawlPipeline:
                 item["code_url"] = re.findall(r'(https?://\S+)', abstract)
 
             citation_count = -1
+            paper_doi = ""
             paper_categories = ""
             paper_concepts = ""
 
@@ -256,15 +258,29 @@ class CrawlPipeline:
                 if response.status_code == 200:
                     data = response.json()
                     if data["results"]:
-                        paper = data["results"][0]
-                        citation_count = paper["cited_by_count"]
-                        paper_categories = ",".join([paper["topics"][i]['display_name'] for i in range(len(paper["topics"]))])
-                        paper_concepts = ",".join([paper["concepts"][i]['display_name'] for i in range(len(paper["concepts"]))])
+                        # Extract the top 5 papers
+                        top_papers = data["results"][:5]
+
+                        # Get the titles from the top 5 papers
+                        found_titles = [paper["title"] for paper in top_papers]
+
+                        # Find the most relevant title using fuzzy matching
+                        best_match, best_score = process.extractOne(title, found_titles, scorer=fuzz.ratio)
+
+                        # Find the corresponding paper
+                        best_paper = next(paper for paper in top_papers if paper["title"] == best_match)
+
+                        # best_paper = data["results"][0]
+                        citation_count = best_paper["cited_by_count"]
+                        paper_categories = ",".join([best_paper["topics"][i]['display_name'] for i in range(len(best_paper["topics"]))])
+                        paper_concepts = ",".join([best_paper["concepts"][i]['display_name'] for i in range(len(best_paper["concepts"]))])
+                        paper_doi = best_paper["doi"]
 
             item["citation_count"] = citation_count
             item["matched_queries"] = ",".join(list(matched_tokens))
             item["categories"] = paper_categories
             item["concepts"] = paper_concepts
+            item["doi"] = paper_doi
             return item
         else:
             raise DropItem("Missing keyword in %s" % item)
