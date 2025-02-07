@@ -139,7 +139,7 @@ Simply inherit from `DblpScrapySpider` or `DblpConfScrapySpider`, set `name=`, s
 ## Change Log
 
 + 7-FEB-2025
-  + Fixed a bug in which the top result from crossref API might not be the current paper, leading to totally wrong information on citation count, concepts, and categories.
+  + Found a bug in which when the paper title cannot be successfully fetched from the top-5 query results, the citation count / categories / concepts from the CrossRef would be false. Haven't figured out how to fix it without importing extra libraries for sophisticated matching. I will leave it for now since it only affect a very small percentage (~0.1%) of the results. 
 + 17-JAN-2025
   + Add spiders for Interspeech, TSP, and ICASSP.
 + 15-JAN-2025

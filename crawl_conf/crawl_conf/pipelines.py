@@ -258,10 +258,10 @@ class CrawlPipeline:
                 if response.status_code == 200:
                     data = response.json()
                     if data["results"]:
-                        # Extract the top 5 papers
-                        top_papers = data["results"][:5]
+                        # Extract the top 10 papers
+                        top_papers = data["results"][:10]
 
-                        # Get the titles from the top 5 papers
+                        # Get the titles from the top 10 papers
                         found_titles = [paper["title"] for paper in top_papers]
 
                         # Find the most relevant title using fuzzy matching
